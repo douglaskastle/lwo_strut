@@ -4,13 +4,38 @@ import chunk
 import re
 from glob import glob
 from pprint import pprint
+from collections import OrderedDict
 
 
 class lwoNoImageFoundException(Exception):
     pass
 
 
-class _obj_layer(object):
+class _lwo_base(object):
+
+    def __eq__(self, x):
+        if not isinstance(x, self.__class__):
+            return False
+        for k in self.__slots__:
+            a = getattr(self, k)
+            b = getattr(x, k)
+            if not a == b:
+                print(f"{k} mismatch:")
+                print(f"\t{a} != {b}")
+                return False
+        return True
+
+    @property
+    def dict(self):
+        d = OrderedDict()
+        for k in self.__slots__:
+            d[k] = getattr(self, k)
+        return d
+
+    def __repr__(self):
+        return str(self.dict)
+
+class _obj_layer(_lwo_base):
     __slots__ = (
         "name",
         "index",
@@ -54,28 +79,7 @@ class _obj_layer(object):
         self.surf_tags = {}
         self.has_subds = False
 
-    def __eq__(self, x):
-        for k in self.__slots__:
-            a = getattr(self, k)
-            b = getattr(x, k)
-            if not a == b:
-                print(f"{k} mismatch:")
-                print(f"\t{a} != {b}")
-                return False
-        return True
-
-    @property
-    def dict(self):
-        d = {}
-        for k in self.__slots__:
-            d[k] = getattr(self, k)
-        return d
-
-    def __repr__(self):
-        return str(self.dict)
-
-
-class _obj_surf(object):
+class _obj_surf(_lwo_base):
     __slots__ = (
         "bl_mat",
         "name",
@@ -121,26 +125,6 @@ class _obj_surf(object):
         self.textures = {}  # Textures list
         self.textures_5 = []  # Textures list for LWOB
 
-    def __eq__(self, x):
-        for k in self.__slots__:
-            a = getattr(self, k)
-            b = getattr(x, k)
-            if not a == b:
-                print(f"{k} mismatch:")
-                print(f"\t{a} != {b}")
-                return False
-        return True
-
-    @property
-    def dict(self):
-        d = {}
-        for k in self.__slots__:
-            d[k] = getattr(self, k)
-        return d
-
-    def __repr__(self):
-        return str(self.dict)
-
     def lwoprint(self):
         print(f"SURFACE")
         print(f"Surface Name:       {self.name}")
@@ -168,7 +152,7 @@ class _obj_surf(object):
                 texture.lwoprint(indent=1)
 
 
-class _surf_texture(object):
+class _surf_texture(_lwo_base):
     __slots__ = (
         "opac",
         "opactype",
@@ -197,28 +181,6 @@ class _surf_texture(object):
         self.clip = None
         self.nega = None
 
-    def __eq__(self, x):
-        if None == x:
-            return False
-        for k in self.__slots__:
-            a = getattr(self, k)
-            b = getattr(x, k)
-            if not a == b:
-                print(f"{k} mismatch:")
-                print(f"\t{a} != {b}")
-                return False
-        return True
-
-    @property
-    def dict(self):
-        d = {}
-        for k in self.__slots__:
-            d[k] = getattr(self, k)
-        return d
-
-    def __repr__(self):
-        return str(self.dict)
-
     def lwoprint(self, indent=0):
         print(f"TEXTURE")
         print(f"ClipID:         {self.clipid}")
@@ -234,7 +196,7 @@ class _surf_texture(object):
         print()
 
 
-class _surf_texture_5(object):
+class _surf_texture_5(_lwo_base):
     __slots__ = ("path", "X", "Y", "Z")
 
     def __init__(self):
@@ -1104,13 +1066,19 @@ class lwoObject(object):
         del self.f
 
     def pprint(self):
-        d = {
-            'layers': self.layers,
-            'surfs': self.surfs,
-            'tags': self.tags,
-            'clips': self.clips,
-            'images': self.images,
-        }
+        
+        layers = []
+        for x in self.layers:
+            layers.append(x.dict)
+        surfs = {}
+        for x in self.surfs:
+            surfs[x] = self.surfs[x].dict
+        d = OrderedDict() 
+        d['layers'] = layers,
+        d['surfs'] = surfs,
+        d['tags'] = self.tags,
+        d['clips'] =self.clips,
+        d['images'] = self.images,
         pprint(d)
 
     def resolve_clips(self):
