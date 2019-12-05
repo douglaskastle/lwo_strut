@@ -2,7 +2,7 @@
 
 # lwo_strut
 
-This is a python only parser of the Lightwave format LWO.  This code was oringnally lifted from the blender project, however this is only the part that reads the lwo file and loads it into a python object.  
+This is a python only parser of the Lightwave format LWO.  This code was originally lifted from the blender project, however this is only the part that reads the lwo file and loads it into a python object.  
 
 The subsequent conversion into a blender format has been excised so there is no requirement on the bpy module. 
 
