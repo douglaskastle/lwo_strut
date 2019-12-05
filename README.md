@@ -79,7 +79,7 @@ This code can be run on a standard python install, starting from 3.6. Please ref
              ('clips', ({},)),
              ('images', ([],))])
 
-To run pytest
+To run pytest:
 
     export PYTHONPATH=`pwd`
     pytest
