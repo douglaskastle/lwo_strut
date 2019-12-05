@@ -1050,7 +1050,7 @@ class lwoObject(object):
             if not a == b:
                 print(f"{k} mismatch:")
                 print(f"\t{a} != {b}")
-                 return False
+                return False
         return True
 
 

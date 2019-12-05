@@ -17,6 +17,9 @@ install:
 script:
     - cd ${TRAVIS_BUILD_DIR}
     - python --version
+    - export PYTHONPATH=`pwd`
+    - echo $PYTHONPATH
+    - pytest
 
 notifications:
     email:
