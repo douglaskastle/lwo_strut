@@ -645,7 +645,7 @@ def read_pols_5(pol_bytes, object_layers):
 
 def read_bones(bone_bytes, lwo):
     """Read the layer's skelegons."""
-    print(f"\tReading Layer ({object_layers[-1].name}) Bones")
+    #print(f"\tReading Layer ({object_layers[-1].name}) Bones")
     offset = 0
     bones_count = len(bone_bytes)
 
@@ -1290,9 +1290,10 @@ class lwoObject(object):
             elif rootchunk.chunkname == b"PTAG":
                 (tag_type,) = struct.unpack("4s", rootchunk.read(4))
                 if tag_type == b"SURF":
-                    read_surf_tags_5(
-                        rootchunk.read(), self.layers, self.last_pols_count
-                    )
+                    raise Exception("Missing commented out function")
+#                     read_surf_tags_5(
+#                         rootchunk.read(), self.layers, self.last_pols_count
+#                     )
                 else:
                     rootchunk.skip()
             elif rootchunk.chunkname == b"SURF":

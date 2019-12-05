@@ -9,6 +9,8 @@ def main():
     x = lwoObject(infile)
     x.read()
     
+    x.pprint()
+    
     outfile = infile + ".pickle"
     
     if not os.path.isfile(outfile):
