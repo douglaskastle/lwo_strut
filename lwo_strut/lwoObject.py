@@ -197,6 +197,28 @@ class _surf_texture(object):
         self.clip = None
         self.nega = None
 
+    def __eq__(self, x):
+        if None == x:
+            return False
+        for k in self.__slots__:
+            a = getattr(self, k)
+            b = getattr(x, k)
+            if not a == b:
+                print(f"{k} mismatch:")
+                print(f"\t{a} != {b}")
+                return False
+        return True
+
+    @property
+    def dict(self):
+        d = {}
+        for k in self.__slots__:
+            d[k] = getattr(self, k)
+        return d
+
+    def __repr__(self):
+        return str(self.dict)
+
     def lwoprint(self, indent=0):
         print(f"TEXTURE")
         print(f"ClipID:         {self.clipid}")
