@@ -1,0 +1,19 @@
+dist: xenial
+
+# os:
+#     - linux
+
+
+language: python
+python:
+    - 3.6
+    - 3.7
+
+script:
+    - cd ${TRAVIS_BUILD_DIR}
+    - python --version
+
+notifications:
+    email:
+        on_success: change
+        on_failure: always
