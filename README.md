@@ -1,5 +1,5 @@
 [![Travis Build Status](https://travis-ci.org/douglaskastle/lwo_strut.svg?branch=master)](https://travis-ci.org/douglaskastle/lwo_strut)
-[![Github Build Status](https://github.com/douglaskastle/lwo_strut/workflows/lwo_struct/badge.svg)](https://github.com/douglaskastle/lwo_strut/workflows/lwo_struct/badge.svg)
+[![Github Build Status](https://github.com/douglaskastle/lwo_strut/workflows/lwo_struct/badge.svg)](https://github.com/douglaskastle/lwo_strut/actions)
 
 # lwo_strut
 
