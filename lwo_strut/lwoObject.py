@@ -1181,22 +1181,25 @@ class lwoObject(object):
         
         self.lwo = None
         
-        #self.layers = []
-        #self.surfs = {}
-        #self.tags = []
-        #self.clips = {}
-        
         self.images = []
         self.search_paths = []
         self.allow_missing_images = False
         self.absfilepath = True
+        
+        self.load_hidden = False
 
     @property
     def layers(self):
         if None is self.lwo:
             return []
         else:
-            return self.lwo.layers
+            layers = []
+            for l in self.lwo.layers:
+                if not l.hidden or self.load_hidden:
+                    layers.append(l)
+            #return self.lwo.layers
+            #pprint(layers)
+            return layers
         
     @property
     def surfs(self):
@@ -1264,11 +1267,6 @@ class lwoObject(object):
         print(f"{self.lwo.type}")
         
         self.lwo.read_lwo(self.f, self)
-        
-        #self.layers = self.lwo.layers
-        #self.surfs = self.lwo.surfs
-        #self.tags = self.lwo.tags
-        #self.clips = self.lwo.clips
         
         self.f.close()
         del self.f

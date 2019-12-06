@@ -14,7 +14,7 @@ def main():
     x = lwoObject(infile)
     x.read()
 
-    x.pprint()
+    #x.pprint()
 
     f.setup_pickle(x)
     # x.pprint()
