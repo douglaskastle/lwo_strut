@@ -31,8 +31,8 @@ class _lwo_base(object):
             d[k] = getattr(self, k)
         return d
 
-    def __repr__(self):
-        return str(self.dict)
+#     def __repr__(self):
+#         return str(self.dict)
 
 
 class _obj_layer(_lwo_base):
@@ -56,6 +56,7 @@ class _obj_layer(_lwo_base):
         "edge_weights",
         "surf_tags",
         "has_subds",
+        #"hidden",
     )
 
     def __init__(self):
@@ -78,6 +79,7 @@ class _obj_layer(_lwo_base):
         self.edge_weights = {}
         self.surf_tags = {}
         self.has_subds = False
+        self.hidden = False
 
 
 class _obj_surf(_lwo_base):
@@ -212,7 +214,6 @@ class LWO2(object):
         self.surfs = {}
         self.tags = []
         self.clips = {}
-        self.images = []
 
     def read_lwostring(self, raw_name):
         """Parse a zero-padded string."""
@@ -1166,19 +1167,23 @@ class LWO(LWO2):
                 rootchunk.skip()
 
 class LWO3(object):
-    pass
+
+    def __init__(self):
+        super().__init__()
+        self.type = "LWO3"
 
 
 class lwoObject(object):
     def __init__(self, filename):
         self.name, self.ext = os.path.splitext(os.path.basename(filename))
         self.filename = os.path.abspath(filename)
+        
         self.layers = []
         self.surfs = {}
         self.tags = []
         self.clips = {}
+        
         self.images = []
-
         self.search_paths = []
         self.allow_missing_images = False
         self.absfilepath = True
