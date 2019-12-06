@@ -14,8 +14,3 @@ def test_load_lwo_box0_pass():
     b = f.load_pickle()
     
     assert x == b
-# from lwo_helper import load_lwo
-# 
-# def test_load_lwo0():
-#     infile = "tests/lwo_interceptor/src/LWO2/Federation - Interceptor/objects/interceptor_hull.lwo"
-#     load_lwo(infile)

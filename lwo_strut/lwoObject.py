@@ -1017,6 +1017,7 @@ class lwoObject(object):
 
         self.search_paths = []
         self.allow_missing_images = False
+        self.absfilepath = False
 
         # self.read()
     
@@ -1026,7 +1027,7 @@ class lwoObject(object):
             "surfs",
             "tags",
             "clips",
-#            "images",
+            "images",
         )
         for k in __slots__:
             a = getattr(self, k)
@@ -1102,7 +1103,11 @@ class lwoObject(object):
 
             ifile = None
             for f in files:
-                y = os.path.abspath(f)
+                if self.absfilepath:
+                    y = os.path.abspath(f)
+                else:
+                    y = os.path.relpath(f)
+                
                 if os.path.isfile(y):
                     ifile = y
                     if ifile not in self.images:
