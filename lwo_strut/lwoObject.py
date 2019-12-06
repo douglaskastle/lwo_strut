@@ -1026,7 +1026,7 @@ class lwoObject(object):
             "surfs",
             "tags",
             "clips",
-            "images",
+#            "images",
         )
         for k in __slots__:
             a = getattr(self, k)
