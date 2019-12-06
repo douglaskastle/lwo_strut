@@ -29,3 +29,17 @@ def test_load_lwo_box0_fail():
     b = f.load_pickle()
 
     assert not x == b
+
+def test_load_lwo_box3():
+    infile = "tests/basic/src/LWO/box/box3-uv-layers.lwo"
+    f = LwoFile(infile)
+    f.check_file()
+
+    x = lwoObject(infile)
+    x.read()
+
+    f.setup_pickle(x)
+    b = f.load_pickle()
+
+    assert x == b
+

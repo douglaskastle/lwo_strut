@@ -10,6 +10,7 @@ def main():
 
     x = lwoObject(infile)
     x.search_paths = ["/../images"]
+    x.absfilepath = False
     x.read()
 
     f.setup_pickle(x)

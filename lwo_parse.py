@@ -24,25 +24,6 @@ def main():
     # b.pprint()
     print(x == b)
 
-
-#     infile = "tests/lwo_interceptor/src/LWO2/Federation - Interceptor/objects/interceptor_hull.lwo"
-#     f = LwoFile(infile, create_pickle=True)
-#     f.check_file()
-#
-#     x = lwoObject(infile)
-#     x.search_paths = ["/../images"]
-#     x.read()
-#
-#     f.setup_pickle(x)
-#     #x.pprint()
-#
-#     b = f.load_pickle()
-#
-#     #x.pprint()
-#     #b.pprint()
-#     print(x == b)
-
-
 #     #x.layers[0].name = "Layer 2"
 #     outfile = infile + ".error0.pickle"
 #     #os.unlink(outfile)
