@@ -12,7 +12,6 @@ class lwoNoImageFoundException(Exception):
 
 
 class _lwo_base(object):
-
     def __eq__(self, x):
         if not isinstance(x, self.__class__):
             return False
@@ -34,6 +33,7 @@ class _lwo_base(object):
 
     def __repr__(self):
         return str(self.dict)
+
 
 class _obj_layer(_lwo_base):
     __slots__ = (
@@ -78,6 +78,7 @@ class _obj_layer(_lwo_base):
         self.edge_weights = {}
         self.surf_tags = {}
         self.has_subds = False
+
 
 class _obj_surf(_lwo_base):
     __slots__ = (
@@ -256,7 +257,7 @@ def read_layr(layr_bytes, object_layers, load_hidden):
 
     print("Reading Object Layer")
     offset = 4
-    pivot = struct.unpack(">fff", layr_bytes[offset : offset + 12])
+    pivot = struct.unpack(">fff", layr_bytes[offset:offset + 12])
     # Swap Y and Z to match Blender's pitch.
     new_layr.pivot = [pivot[0], pivot[2], pivot[1]]
     offset += 12
@@ -269,7 +270,7 @@ def read_layr(layr_bytes, object_layers, load_hidden):
         new_layr.name = "Layer %d" % (new_layr.index + 1)
 
     if len(layr_bytes) == offset + 2:
-        (new_layr.parent_index,) = struct.unpack(">h", layr_bytes[offset : offset + 2])
+        (new_layr.parent_index,) = struct.unpack(">h", layr_bytes[offset:offset + 2])
 
     object_layers.append(new_layr)
     return True
@@ -302,7 +303,7 @@ def read_pnts(pnt_bytes, object_layers):
     chunk_len = len(pnt_bytes)
 
     while offset < chunk_len:
-        pnts = struct.unpack(">fff", pnt_bytes[offset : offset + 12])
+        pnts = struct.unpack(">fff", pnt_bytes[offset:offset + 12])
         offset += 12
         # Re-order the points so that the mesh has the right pitch,
         # the pivot already has the correct order.
@@ -323,9 +324,9 @@ def read_weightmap(weight_bytes, object_layers):
     weights = []
 
     while offset < chunk_len:
-        pnt_id, pnt_id_len = read_vx(weight_bytes[offset : offset + 4])
+        pnt_id, pnt_id_len = read_vx(weight_bytes[offset:offset + 4])
         offset += pnt_id_len
-        (value,) = struct.unpack(">f", weight_bytes[offset : offset + 4])
+        (value,) = struct.unpack(">f", weight_bytes[offset:offset + 4])
         offset += 4
         weights.append([pnt_id, value])
 
@@ -341,9 +342,9 @@ def read_morph(morph_bytes, object_layers, is_abs):
     deltas = []
 
     while offset < chunk_len:
-        pnt_id, pnt_id_len = read_vx(morph_bytes[offset : offset + 4])
+        pnt_id, pnt_id_len = read_vx(morph_bytes[offset:offset + 4])
         offset += pnt_id_len
-        pos = struct.unpack(">fff", morph_bytes[offset : offset + 12])
+        pos = struct.unpack(">fff", morph_bytes[offset:offset + 12])
         offset += 12
         pnt = object_layers[-1].pnts[pnt_id]
 
@@ -367,16 +368,16 @@ def read_colmap(col_bytes, object_layers):
 
     if dia == 3:
         while offset < chunk_len:
-            pnt_id, pnt_id_len = read_vx(col_bytes[offset : offset + 4])
+            pnt_id, pnt_id_len = read_vx(col_bytes[offset:offset + 4])
             offset += pnt_id_len
-            col = struct.unpack(">fff", col_bytes[offset : offset + 12])
+            col = struct.unpack(">fff", col_bytes[offset:offset + 12])
             offset += 12
             colors[pnt_id] = (col[0], col[1], col[2])
     elif dia == 4:
         while offset < chunk_len:
-            pnt_id, pnt_id_len = read_vx(col_bytes[offset : offset + 4])
+            pnt_id, pnt_id_len = read_vx(col_bytes[offset:offset + 4])
             offset += pnt_id_len
-            col = struct.unpack(">ffff", col_bytes[offset : offset + 16])
+            col = struct.unpack(">ffff", col_bytes[offset:offset + 16])
             offset += 16
             colors[pnt_id] = (col[0], col[1], col[2])
 
@@ -398,9 +399,9 @@ def read_normmap(norm_bytes, object_layers):
     vnorms = {}
 
     while offset < chunk_len:
-        pnt_id, pnt_id_len = read_vx(norm_bytes[offset : offset + 4])
+        pnt_id, pnt_id_len = read_vx(norm_bytes[offset:offset + 4])
         offset += pnt_id_len
-        norm = struct.unpack(">fff", norm_bytes[offset : offset + 12])
+        norm = struct.unpack(">fff", norm_bytes[offset:offset + 12])
         offset += 12
         vnorms[pnt_id] = [norm[0], norm[2], norm[1]]
 
@@ -419,14 +420,14 @@ def read_color_vmad(col_bytes, object_layers, last_pols_count):
 
     if dia == 3:
         while offset < chunk_len:
-            pnt_id, pnt_id_len = read_vx(col_bytes[offset : offset + 4])
+            pnt_id, pnt_id_len = read_vx(col_bytes[offset:offset + 4])
             offset += pnt_id_len
-            pol_id, pol_id_len = read_vx(col_bytes[offset : offset + 4])
+            pol_id, pol_id_len = read_vx(col_bytes[offset:offset + 4])
             offset += pol_id_len
 
             # The PolyID in a VMAD can be relative, this offsets it.
             pol_id += abs_pid
-            col = struct.unpack(">fff", col_bytes[offset : offset + 12])
+            col = struct.unpack(">fff", col_bytes[offset:offset + 12])
             offset += 12
             if pol_id in colors:
                 colors[pol_id][pnt_id] = (col[0], col[1], col[2])
@@ -434,13 +435,13 @@ def read_color_vmad(col_bytes, object_layers, last_pols_count):
                 colors[pol_id] = dict({pnt_id: (col[0], col[1], col[2])})
     elif dia == 4:
         while offset < chunk_len:
-            pnt_id, pnt_id_len = read_vx(col_bytes[offset : offset + 4])
+            pnt_id, pnt_id_len = read_vx(col_bytes[offset:offset + 4])
             offset += pnt_id_len
-            pol_id, pol_id_len = read_vx(col_bytes[offset : offset + 4])
+            pol_id, pol_id_len = read_vx(col_bytes[offset:offset + 4])
             offset += pol_id_len
 
             pol_id += abs_pid
-            col = struct.unpack(">ffff", col_bytes[offset : offset + 16])
+            col = struct.unpack(">ffff", col_bytes[offset:offset + 16])
             offset += 16
             if pol_id in colors:
                 colors[pol_id][pnt_id] = (col[0], col[1], col[2])
@@ -465,9 +466,9 @@ def read_uvmap(uv_bytes, object_layers):
     uv_coords = {}
 
     while offset < chunk_len:
-        pnt_id, pnt_id_len = read_vx(uv_bytes[offset : offset + 4])
+        pnt_id, pnt_id_len = read_vx(uv_bytes[offset:offset + 4])
         offset += pnt_id_len
-        pos = struct.unpack(">ff", uv_bytes[offset : offset + 8])
+        pos = struct.unpack(">ff", uv_bytes[offset:offset + 8])
         offset += 8
         uv_coords[pnt_id] = (pos[0], pos[1])
 
@@ -490,13 +491,13 @@ def read_uv_vmad(uv_bytes, object_layers, last_pols_count):
     abs_pid = len(object_layers[-1].pols) - last_pols_count
 
     while offset < chunk_len:
-        pnt_id, pnt_id_len = read_vx(uv_bytes[offset : offset + 4])
+        pnt_id, pnt_id_len = read_vx(uv_bytes[offset:offset + 4])
         offset += pnt_id_len
-        pol_id, pol_id_len = read_vx(uv_bytes[offset : offset + 4])
+        pol_id, pol_id_len = read_vx(uv_bytes[offset:offset + 4])
         offset += pol_id_len
 
         pol_id += abs_pid
-        pos = struct.unpack(">ff", uv_bytes[offset : offset + 8])
+        pos = struct.unpack(">ff", uv_bytes[offset:offset + 8])
         offset += 8
         if pol_id in uv_coords:
             uv_coords[pol_id][pnt_id] = (pos[0], pos[1])
@@ -526,11 +527,11 @@ def read_weight_vmad(ew_bytes, object_layers):
     # when it comes to storing CC edge weight values. The weight is given
     # to the point preceding the edge that the weight belongs to.
     while offset < chunk_len:
-        pnt_id, pnt_id_len = read_vx(ew_bytes[offset : offset + 4])
+        pnt_id, pnt_id_len = read_vx(ew_bytes[offset:offset + 4])
         offset += pnt_id_len
-        pol_id, pol_id_len = read_vx(ew_bytes[offset : offset + 4])
+        pol_id, pol_id_len = read_vx(ew_bytes[offset:offset + 4])
         offset += pol_id_len
-        (weight,) = struct.unpack(">f", ew_bytes[offset : offset + 4])
+        (weight,) = struct.unpack(">f", ew_bytes[offset:offset + 4])
         offset += 4
 
         face_pnts = object_layers[-1].pols[pol_id]
@@ -558,11 +559,11 @@ def read_normal_vmad(norm_bytes, object_layers):
     offset += name_len
 
     while offset < chunk_len:
-        pnt_id, pnt_id_len = read_vx(norm_bytes[offset : offset + 4])
+        pnt_id, pnt_id_len = read_vx(norm_bytes[offset:offset + 4])
         offset += pnt_id_len
-        pol_id, pol_id_len = read_vx(norm_bytes[offset : offset + 4])
+        pol_id, pol_id_len = read_vx(norm_bytes[offset:offset + 4])
         offset += pol_id_len
-        norm = struct.unpack(">fff", norm_bytes[offset : offset + 12])
+        norm = struct.unpack(">fff", norm_bytes[offset:offset + 12])
         offset += 12
         if not (pol_id in lnorms.keys()):
             lnorms[pol_id] = []
@@ -580,11 +581,11 @@ def read_pols(pol_bytes, object_layers):
     old_pols_count = len(object_layers[-1].pols)
 
     while offset < pols_count:
-        (pnts_count,) = struct.unpack(">H", pol_bytes[offset : offset + 2])
+        (pnts_count,) = struct.unpack(">H", pol_bytes[offset:offset + 2])
         offset += 2
         all_face_pnts = []
         for j in range(pnts_count):
-            face_pnt, data_size = read_vx(pol_bytes[offset : offset + 4])
+            face_pnt, data_size = read_vx(pol_bytes[offset:offset + 4])
             offset += data_size
             all_face_pnts.append(face_pnt)
         all_face_pnts.reverse()  # correct normals
@@ -606,17 +607,17 @@ def read_pols_5(pol_bytes, object_layers):
     poly = 0
 
     while offset < chunk_len:
-        (pnts_count,) = struct.unpack(">H", pol_bytes[offset : offset + 2])
+        (pnts_count,) = struct.unpack(">H", pol_bytes[offset:offset + 2])
         offset += 2
         all_face_pnts = []
         for j in range(pnts_count):
-            (face_pnt,) = struct.unpack(">H", pol_bytes[offset : offset + 2])
+            (face_pnt,) = struct.unpack(">H", pol_bytes[offset:offset + 2])
             offset += 2
             all_face_pnts.append(face_pnt)
         all_face_pnts.reverse()
 
         object_layers[-1].pols.append(all_face_pnts)
-        (sid,) = struct.unpack(">h", pol_bytes[offset : offset + 2])
+        (sid,) = struct.unpack(">h", pol_bytes[offset:offset + 2])
         offset += 2
         sid = abs(sid) - 1
         if sid not in object_layers[-1].surf_tags:
@@ -629,16 +630,16 @@ def read_pols_5(pol_bytes, object_layers):
 
 def read_bones(bone_bytes, lwo):
     """Read the layer's skelegons."""
-    #print(f"\tReading Layer ({object_layers[-1].name}) Bones")
+    # print(f"\tReading Layer ({object_layers[-1].name}) Bones")
     offset = 0
     bones_count = len(bone_bytes)
 
     while offset < bones_count:
-        (pnts_count,) = struct.unpack(">H", bone_bytes[offset : offset + 2])
+        (pnts_count,) = struct.unpack(">H", bone_bytes[offset:offset + 2])
         offset += 2
         all_bone_pnts = []
         for j in range(pnts_count):
-            bone_pnt, data_size = read_vx(bone_bytes[offset : offset + 4])
+            bone_pnt, data_size = read_vx(bone_bytes[offset:offset + 4])
             offset += data_size
             all_bone_pnts.append(bone_pnt)
 
@@ -658,9 +659,9 @@ def read_bone_tags(tag_bytes, lwo, type):
         return
 
     while offset < chunk_len:
-        pid, pid_len = read_vx(tag_bytes[offset : offset + 4])
+        pid, pid_len = read_vx(tag_bytes[offset:offset + 4])
         offset += pid_len
-        (tid,) = struct.unpack(">H", tag_bytes[offset : offset + 2])
+        (tid,) = struct.unpack(">H", tag_bytes[offset:offset + 2])
         offset += 2
         bone_dict[pid] = lwo.tags[tid]
 
@@ -674,9 +675,9 @@ def read_surf_tags(tag_bytes, object_layers, last_pols_count):
     # Read in the PolyID/Surface Index pairs.
     abs_pid = len(object_layers[-1].pols) - last_pols_count
     while offset < chunk_len:
-        pid, pid_len = read_vx(tag_bytes[offset : offset + 4])
+        pid, pid_len = read_vx(tag_bytes[offset:offset + 4])
         offset += pid_len
-        (sid,) = struct.unpack(">H", tag_bytes[offset : offset + 2])
+        (sid,) = struct.unpack(">H", tag_bytes[offset:offset + 2])
         offset += 2
         if sid not in object_layers[-1].surf_tags:
             object_layers[-1].surf_tags[sid] = []
@@ -692,57 +693,57 @@ def read_clip(clip_bytes, lwo):
 
 def read_texture(surf_bytes, offset, subchunk_len, debug=False):
     texture = _surf_texture()
-    ordinal, ord_len = read_lwostring(surf_bytes[offset + 4 :])
+    ordinal, ord_len = read_lwostring(surf_bytes[offset + 4:])
     suboffset = 6 + ord_len
     while suboffset < subchunk_len:
         (subsubchunk_name,) = struct.unpack(
-            "4s", surf_bytes[offset + suboffset : offset + suboffset + 4]
+            "4s", surf_bytes[offset + suboffset:offset + suboffset + 4]
         )
         suboffset += 4
         (subsubchunk_len,) = struct.unpack(
-            ">H", surf_bytes[offset + suboffset : offset + suboffset + 2]
+            ">H", surf_bytes[offset + suboffset:offset + suboffset + 2]
         )
         suboffset += 2
         if subsubchunk_name == b"CHAN":
             (texture.channel,) = struct.unpack(
-                "4s", surf_bytes[offset + suboffset : offset + suboffset + 4],
+                "4s", surf_bytes[offset + suboffset:offset + suboffset + 4],
             )
             texture.channel = texture.channel.decode("ascii")
         elif subsubchunk_name == b"OPAC":
             (texture.opactype,) = struct.unpack(
-                ">H", surf_bytes[offset + suboffset : offset + suboffset + 2],
+                ">H", surf_bytes[offset + suboffset:offset + suboffset + 2],
             )
             (texture.opac,) = struct.unpack(
-                ">f", surf_bytes[offset + suboffset + 2 : offset + suboffset + 6],
+                ">f", surf_bytes[offset + suboffset + 2: offset + suboffset + 6],
             )
             # print("opactype",opactype)
         elif subsubchunk_name == b"ENAB":
             (texture.enab,) = struct.unpack(
-                ">H", surf_bytes[offset + suboffset : offset + suboffset + 2],
+                ">H", surf_bytes[offset + suboffset:offset + suboffset + 2],
             )
         elif subsubchunk_name == b"IMAG":
             (texture.clipid,) = struct.unpack(
-                ">H", surf_bytes[offset + suboffset : offset + suboffset + 2],
+                ">H", surf_bytes[offset + suboffset:offset + suboffset + 2],
             )
         elif subsubchunk_name == b"PROJ":
             (texture.projection,) = struct.unpack(
-                ">H", surf_bytes[offset + suboffset : offset + suboffset + 2],
+                ">H", surf_bytes[offset + suboffset:offset + suboffset + 2],
             )
         elif subsubchunk_name == b"VMAP":
-            texture.uvname, name_len = read_lwostring(surf_bytes[offset + suboffset :])
+            texture.uvname, name_len = read_lwostring(surf_bytes[offset + suboffset:])
             # print(f"VMAP {texture.uvname} {name_len}")
         elif subsubchunk_name == b"FUNC":  # This is the procedural
-            texture.func, name_len = read_lwostring(surf_bytes[offset + suboffset :])
+            texture.func, name_len = read_lwostring(surf_bytes[offset + suboffset:])
         elif subsubchunk_name == b"NEGA":
             (texture.nega,) = struct.unpack(
-                ">H", surf_bytes[offset + suboffset : offset + suboffset + 2],
+                ">H", surf_bytes[offset + suboffset:offset + suboffset + 2],
             )
         elif subsubchunk_name == b"TMAP":
             if debug:
                 print(f"SubSubBlock: {subsubchunk_name} {subchunk_len}")
         #                 xx, = struct.unpack(
         #                     ">H",
-        #                     surf_bytes[offset + suboffset : offset + suboffset + 2],
+        #                     surf_bytes[offset + suboffset:offset + suboffset + 2],
         #                 )
         #                 print(xx)
         elif subsubchunk_name == b"AXIS":
@@ -750,7 +751,7 @@ def read_texture(surf_bytes, offset, subchunk_len, debug=False):
                 print(f"SubSubBlock: {subsubchunk_name} {subchunk_len}")
         #                 xx,= struct.unpack(
         #                     ">H",
-        #                     surf_bytes[offset + suboffset : offset + suboffset + 2],
+        #                     surf_bytes[offset + suboffset:offset + suboffset + 2],
         #                 )
         #                 print(xx)
         elif subsubchunk_name == b"WRAP":
@@ -798,59 +799,59 @@ def read_surf(surf_bytes, lwo):
     offset = name_len + s_name_len
     block_size = len(surf_bytes)
     while offset < block_size:
-        (subchunk_name,) = struct.unpack("4s", surf_bytes[offset : offset + 4])
+        (subchunk_name,) = struct.unpack("4s", surf_bytes[offset:offset + 4])
         offset += 4
-        (subchunk_len,) = struct.unpack(">H", surf_bytes[offset : offset + 2])
+        (subchunk_len,) = struct.unpack(">H", surf_bytes[offset:offset + 2])
         offset += 2
 
         # Now test which subchunk it is.
         if subchunk_name == b"COLR":
-            surf.colr = struct.unpack(">fff", surf_bytes[offset : offset + 12])
+            surf.colr = struct.unpack(">fff", surf_bytes[offset:offset + 12])
             # Don't bother with any envelopes for now.
 
         elif subchunk_name == b"DIFF":
-            (surf.diff,) = struct.unpack(">f", surf_bytes[offset : offset + 4])
+            (surf.diff,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
 
         elif subchunk_name == b"LUMI":
-            (surf.lumi,) = struct.unpack(">f", surf_bytes[offset : offset + 4])
+            (surf.lumi,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
 
         elif subchunk_name == b"SPEC":
-            (surf.spec,) = struct.unpack(">f", surf_bytes[offset : offset + 4])
+            (surf.spec,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
 
         elif subchunk_name == b"REFL":
-            (surf.refl,) = struct.unpack(">f", surf_bytes[offset : offset + 4])
+            (surf.refl,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
 
         elif subchunk_name == b"RBLR":
-            (surf.rblr,) = struct.unpack(">f", surf_bytes[offset : offset + 4])
+            (surf.rblr,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
 
         elif subchunk_name == b"TRAN":
-            (surf.tran,) = struct.unpack(">f", surf_bytes[offset : offset + 4])
+            (surf.tran,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
 
         elif subchunk_name == b"RIND":
-            (surf.rind,) = struct.unpack(">f", surf_bytes[offset : offset + 4])
+            (surf.rind,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
 
         elif subchunk_name == b"TBLR":
-            (surf.tblr,) = struct.unpack(">f", surf_bytes[offset : offset + 4])
+            (surf.tblr,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
 
         elif subchunk_name == b"TRNL":
-            (surf.trnl,) = struct.unpack(">f", surf_bytes[offset : offset + 4])
+            (surf.trnl,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
 
         elif subchunk_name == b"GLOS":
-            (surf.glos,) = struct.unpack(">f", surf_bytes[offset : offset + 4])
+            (surf.glos,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
 
         elif subchunk_name == b"SHRP":
-            (surf.shrp,) = struct.unpack(">f", surf_bytes[offset : offset + 4])
+            (surf.shrp,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
 
         elif subchunk_name == b"SMAN":
-            (s_angle,) = struct.unpack(">f", surf_bytes[offset : offset + 4])
+            (s_angle,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
             # print(s_angle)
             if s_angle > 0.0:
                 surf.smooth = True
         elif subchunk_name == b"BUMP":
-            (surf.bump,) = struct.unpack(">f", surf_bytes[offset : offset + 4])
+            (surf.bump,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
 
         elif subchunk_name == b"BLOK":
-            (block_type,) = struct.unpack("4s", surf_bytes[offset : offset + 4])
+            (block_type,) = struct.unpack("4s", surf_bytes[offset:offset + 4])
             texture = None
             debug = False
             #             if surf.name == "inc_hull_dark":
@@ -860,9 +861,9 @@ def read_surf(surf_bytes, lwo):
                 texture = read_texture(surf_bytes, offset, subchunk_len, debug=debug)
             else:
                 print(f"Unimplemented texture type: {block_type}")
-            if not None == texture:
+            if None is not texture:
                 texture.type = block_type.decode("ascii")
-                if not texture.channel in surf.textures.keys():
+                if texture.channel not in surf.textures.keys():
                     surf.textures[texture.channel] = []
                 surf.textures[texture.channel].append(texture)
         elif subchunk_name == b"VERS":
@@ -918,44 +919,44 @@ def read_surf_5(surf_bytes, lwo, dirpath=None):
     offset = name_len
     chunk_len = len(surf_bytes)
     while offset < chunk_len:
-        (subchunk_name,) = struct.unpack("4s", surf_bytes[offset : offset + 4])
+        (subchunk_name,) = struct.unpack("4s", surf_bytes[offset:offset + 4])
         offset += 4
-        (subchunk_len,) = struct.unpack(">H", surf_bytes[offset : offset + 2])
+        (subchunk_len,) = struct.unpack(">H", surf_bytes[offset:offset + 2])
         offset += 2
 
         # Now test which subchunk it is.
         if subchunk_name == b"COLR":
-            color = struct.unpack(">BBBB", surf_bytes[offset : offset + 4])
+            color = struct.unpack(">BBBB", surf_bytes[offset:offset + 4])
             surf.colr = [color[0] / 255.0, color[1] / 255.0, color[2] / 255.0]
 
         elif subchunk_name == b"DIFF":
-            (surf.diff,) = struct.unpack(">h", surf_bytes[offset : offset + 2])
+            (surf.diff,) = struct.unpack(">h", surf_bytes[offset:offset + 2])
             surf.diff /= 256.0  # Yes, 256 not 255.
 
         elif subchunk_name == b"LUMI":
-            (surf.lumi,) = struct.unpack(">h", surf_bytes[offset : offset + 2])
+            (surf.lumi,) = struct.unpack(">h", surf_bytes[offset:offset + 2])
             surf.lumi /= 256.0
 
         elif subchunk_name == b"SPEC":
-            (surf.spec,) = struct.unpack(">h", surf_bytes[offset : offset + 2])
+            (surf.spec,) = struct.unpack(">h", surf_bytes[offset:offset + 2])
             surf.spec /= 256.0
 
         elif subchunk_name == b"REFL":
-            (surf.refl,) = struct.unpack(">h", surf_bytes[offset : offset + 2])
+            (surf.refl,) = struct.unpack(">h", surf_bytes[offset:offset + 2])
             surf.refl /= 256.0
 
         elif subchunk_name == b"TRAN":
-            (surf.tran,) = struct.unpack(">h", surf_bytes[offset : offset + 2])
+            (surf.tran,) = struct.unpack(">h", surf_bytes[offset:offset + 2])
             surf.tran /= 256.0
 
         elif subchunk_name == b"RIND":
-            (surf.rind,) = struct.unpack(">f", surf_bytes[offset : offset + 4])
+            (surf.rind,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
 
         elif subchunk_name == b"GLOS":
-            (surf.glos,) = struct.unpack(">h", surf_bytes[offset : offset + 2])
+            (surf.glos,) = struct.unpack(">h", surf_bytes[offset:offset + 2])
 
         elif subchunk_name == b"SMAN":
-            (s_angle,) = struct.unpack(">f", surf_bytes[offset : offset + 4])
+            (s_angle,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
             if s_angle > 0.0:
                 surf.smooth = True
 
@@ -973,7 +974,7 @@ def read_surf_5(surf_bytes, lwo, dirpath=None):
 
         elif subchunk_name == b"TFLG":
             if texture:
-                (mapping,) = struct.unpack(">h", surf_bytes[offset : offset + 2])
+                (mapping,) = struct.unpack(">h", surf_bytes[offset:offset + 2])
                 if mapping & 1:
                     texture.X = True
                 elif mapping & 2:
@@ -1007,7 +1008,7 @@ def read_surf_5(surf_bytes, lwo, dirpath=None):
 class lwoObject(object):
     def __init__(self, filename):
         self.name, self.ext = os.path.splitext(os.path.basename(filename))
-        #self.f = None
+        # self.f = None
         self.filename = os.path.abspath(filename)
         self.layers = []
         self.surfs = {}
@@ -1020,7 +1021,7 @@ class lwoObject(object):
         self.absfilepath = False
 
         # self.read()
-    
+
     def __eq__(self, x):
         __slots__ = (
             "layers",
@@ -1037,7 +1038,6 @@ class lwoObject(object):
                 print(f"\t{a} != {b}")
                 return False
         return True
-
 
     def read(
         self, ADD_SUBD_MOD=True, LOAD_HIDDEN=False, SKEL_TO_ARM=True,
@@ -1067,19 +1067,19 @@ class lwoObject(object):
         del self.f
 
     def pprint(self):
-        
+
         layers = []
         for x in self.layers:
             layers.append(x.dict)
         surfs = {}
         for x in self.surfs:
             surfs[x] = self.surfs[x].dict
-        d = OrderedDict() 
-        d['layers'] = layers,
-        d['surfs'] = surfs,
-        d['tags'] = self.tags,
-        d['clips'] =self.clips,
-        d['images'] = self.images,
+        d = OrderedDict()
+        d["layers"] = (layers,)
+        d["surfs"] = (surfs,)
+        d["tags"] = (self.tags,)
+        d["clips"] = (self.clips,)
+        d["images"] = (self.images,)
         pprint(d)
 
     def resolve_clips(self):
@@ -1107,13 +1107,13 @@ class lwoObject(object):
                     y = os.path.abspath(f)
                 else:
                     y = os.path.relpath(f)
-                
+
                 if os.path.isfile(y):
                     ifile = y
                     if ifile not in self.images:
                         self.images.append(ifile)
                     continue
-            if None == ifile and not self.allow_missing_images:
+            if None is ifile and not self.allow_missing_images:
                 raise lwoNoImageFoundException(
                     "No valid image found for path: {} {}".format(
                         orig_path, search_paths
@@ -1130,7 +1130,7 @@ class lwoObject(object):
             for textures_type in surf_data.textures.keys():
                 for texture in surf_data.textures[textures_type]:
                     ci = texture.clipid
-                    if not ci in self.clips.keys():
+                    if ci not in self.clips.keys():
                         print(f"WARNING in material {surf_data.name}")
                         print(f"\tci={ci}, not present in self.clips.keys():")
                         # pprint(self.clips)
@@ -1286,9 +1286,9 @@ class lwoObject(object):
                 (tag_type,) = struct.unpack("4s", rootchunk.read(4))
                 if tag_type == b"SURF":
                     raise Exception("Missing commented out function")
-#                     read_surf_tags_5(
-#                         rootchunk.read(), self.layers, self.last_pols_count
-#                     )
+                #                     read_surf_tags_5(
+                #                         rootchunk.read(), self.layers, self.last_pols_count
+                #                     )
                 else:
                     rootchunk.skip()
             elif rootchunk.chunkname == b"SURF":
