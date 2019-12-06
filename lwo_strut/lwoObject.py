@@ -858,7 +858,7 @@ class LWO2(object):
             suboffset += subsubchunk_len
         return texture
 
-    def read_lwo(self, f, obyc):
+    def read_lwo(self, f):
         """Read version 2 file, LW 6+."""
         self.last_pols_count = 0
         self.just_read_bones = False
@@ -933,21 +933,16 @@ class LWO2(object):
                 if tag_type == b"SURF" and not self.just_read_bones:
                     # Ignore the surface data if we just read a bones chunk.
                     self.read_surf_tags(rootchunk.read(), self.last_pols_count)
-
-                elif obyc.skel_to_arm:
-                    if tag_type == b"BNUP":
-                        self.read_bone_tags(rootchunk.read(), "BNUP")
-                    elif tag_type == b"BONE":
-                        self.read_bone_tags(rootchunk.read(), "BONE")
-                    elif tag_type == b"PART":
-                        rootchunk.skip()  # SKIPPING
-                    elif tag_type == b"COLR":
-                        rootchunk.skip()  # SKIPPING
-                    else:
-                        print(f"Skipping tag: {tag_type}")
-                        rootchunk.skip()
+                elif tag_type == b"BNUP":
+                    self.read_bone_tags(rootchunk.read(), "BNUP")
+                elif tag_type == b"BONE":
+                    self.read_bone_tags(rootchunk.read(), "BONE")
+                elif tag_type == b"PART":
+                    rootchunk.skip()  # SKIPPING
+                elif tag_type == b"COLR":
+                    rootchunk.skip()  # SKIPPING
                 else:
-                    print(f"Skipping tag_type: {tag_type}")
+                    print(f"Skipping tag: {tag_type}")
                     rootchunk.skip()
             elif rootchunk.chunkname == b"SURF":
                 self.read_surf(rootchunk.read())
@@ -1124,7 +1119,7 @@ class LWO(LWO2):
     
         self.surfs[surf.name] = surf
 
-    def read_lwo(self, f, obyc=None):
+    def read_lwo(self, f):
         """Read version 1 file, LW < 6."""
         self.last_pols_count = 0
         #print(f"LWO v1 Format")
@@ -1197,8 +1192,6 @@ class lwoObject(object):
             for l in self.lwo.layers:
                 if not l.hidden or self.load_hidden:
                     layers.append(l)
-            #return self.lwo.layers
-            #pprint(layers)
             return layers
         
     @property
@@ -1266,7 +1259,7 @@ class lwoObject(object):
             return
         print(f"{self.lwo.type}")
         
-        self.lwo.read_lwo(self.f, self)
+        self.lwo.read_lwo(self.f)
         
         self.f.close()
         del self.f
