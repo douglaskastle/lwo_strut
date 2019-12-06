@@ -43,3 +43,16 @@ def test_load_lwo_box3():
 
     assert x == b
 
+def test_load_lwo_box6():
+    infile = "tests/basic/src/LWO2/box/box6-hidden.lwo"
+    f = LwoFile(infile)
+    f.check_file()
+
+    x = lwoObject(infile)
+    x.read()
+
+    f.setup_pickle(x)
+    b = f.load_pickle()
+
+    assert x == b
+

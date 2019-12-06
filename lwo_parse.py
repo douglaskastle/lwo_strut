@@ -6,7 +6,8 @@ from scripts.lwo_helper import LwoFile
 def main():
     #     #infile = "tests/basic/src/LWO2/box/box1-uv.lwo"
 
-    infile = "tests/basic/src/LWO2/box/box0.lwo"
+    #infile = "tests/basic/src/LWO2/box/box0.lwo"
+    infile = "tests/basic/src/LWO2/box/box6-hidden.lwo"
     f = LwoFile(infile, create_pickle=True)
     f.check_file()
 

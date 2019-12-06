@@ -10,6 +10,8 @@ class LwoFile(object):
         self.infile = infile
         self.zdel_dir = []
         self.create_pickle = create_pickle
+        self.picklefile = self.infile + ".pickle"
+        self.picklefile = re.sub("src", "pickle", self.picklefile)
 
     def check_file(self):
         edit_infile = self.infile
@@ -39,8 +41,6 @@ class LwoFile(object):
             raise Exception(f"Infile or zip file not found {self.infile} {x}")
 
     def setup_pickle(self, x):
-        self.picklefile = self.infile + ".pickle"
-        self.picklefile = re.sub("src", "pickle", self.picklefile)
         head, tail = os.path.split(os.path.realpath(self.picklefile))
         pathlib.Path(head).mkdir(parents=True, exist_ok=True)
 

@@ -15,6 +15,11 @@ class _lwo_base(object):
     def __eq__(self, x):
         if not isinstance(x, self.__class__):
             return False
+        
+#         raise Exception(len(self.__slots__), len(x.__slots__))
+#         if not len(self.__slots__) == len(x.__slots__):
+#             print("Different number of __slots__")
+#             return False
         for k in self.__slots__:
             a = getattr(self, k)
             b = getattr(x, k)
@@ -56,7 +61,7 @@ class _obj_layer(_lwo_base):
         "edge_weights",
         "surf_tags",
         "has_subds",
-        #"hidden",
+        "hidden",
     )
 
     def __init__(self):
@@ -580,13 +585,16 @@ class LWO2(object):
                 self.layers[-1].surf_tags[sid] = []
             self.layers[-1].surf_tags[sid].append(pid + abs_pid)
 
-    def read_layr(self, layr_bytes, load_hidden):
+    def read_layr(self, layr_bytes):
         """Read the object's layer data."""
         new_layr = _obj_layer()
         new_layr.index, flags = struct.unpack(">HH", layr_bytes[0:4])
     
-        if flags > 0 and not load_hidden:
-            return False
+        if flags > 0 :
+            new_layr.hidden = True
+            #raise Exception
+#         if flags > 0 and not load_hidden:
+#             return False
     
         print("Reading Object Layer")
         offset = 4
@@ -852,7 +860,6 @@ class LWO2(object):
 
     def read_lwo(self, f, obyc):
         """Read version 2 file, LW 6+."""
-        self.handle_layer = True
         self.last_pols_count = 0
         self.just_read_bones = False
         print(f"LWO v2 Format")
@@ -866,12 +873,10 @@ class LWO2(object):
             if rootchunk.chunkname == b"TAGS":
                 self.read_tags(rootchunk.read())
             elif rootchunk.chunkname == b"LAYR":
-                self.handle_layer = self.read_layr(
-                    rootchunk.read(), obyc.load_hidden
-                )
-            elif rootchunk.chunkname == b"PNTS" and self.handle_layer:
+                self.read_layr(rootchunk.read())
+            elif rootchunk.chunkname == b"PNTS":
                 self.read_pnts(rootchunk.read())
-            elif rootchunk.chunkname == b"VMAP" and self.handle_layer:
+            elif rootchunk.chunkname == b"VMAP":
                 vmap_type = rootchunk.read(4)
 
                 if vmap_type == b"WGHT":
@@ -892,7 +897,7 @@ class LWO2(object):
                     print(f"Skipping vmap_type: {vmap_type}")
                     rootchunk.skip()
 
-            elif rootchunk.chunkname == b"VMAD" and self.handle_layer:
+            elif rootchunk.chunkname == b"VMAD":
                 vmad_type = rootchunk.read(4)
 
                 if vmad_type == b"TXUV":
@@ -908,13 +913,11 @@ class LWO2(object):
                     print(f"Skipping vmad_type: {vmad_type}")
                     rootchunk.skip()
 
-            elif rootchunk.chunkname == b"POLS" and self.handle_layer:
+            elif rootchunk.chunkname == b"POLS":
                 face_type = rootchunk.read(4)
                 self.just_read_bones = False
                 # PTCH is LW's Subpatches, SUBD is CatmullClark.
-                if (
-                    face_type == b"FACE" or face_type == b"PTCH" or face_type == b"SUBD"
-                ) and self.handle_layer:
+                if (face_type == b"FACE" or face_type == b"PTCH" or face_type == b"SUBD"):
                     self.last_pols_count = self.read_pols(rootchunk.read())
                     if face_type != b"FACE":
                         self.layers[-1].has_subds = True
@@ -925,7 +928,7 @@ class LWO2(object):
                     print(f"Skipping face_type: {face_type}")
                     rootchunk.skip()
 
-            elif rootchunk.chunkname == b"PTAG" and self.handle_layer:
+            elif rootchunk.chunkname == b"PTAG":
                 (tag_type,) = struct.unpack("4s", rootchunk.read(4))
                 if tag_type == b"SURF" and not self.just_read_bones:
                     # Ignore the surface data if we just read a bones chunk.
@@ -961,7 +964,6 @@ class LWO2(object):
             elif rootchunk.chunkname == b"PTAG":
                 rootchunk.skip()  # SKIPPING
             else:
-                # if self.handle_layer:
                 print(f"Skipping Chunk: {rootchunk.chunkname}")
                 rootchunk.skip()
 
@@ -1162,7 +1164,6 @@ class LWO(LWO2):
                 self.read_surf(rootchunk.read())
             else:
                 # For Debugging \/.
-                # if handle_layer:
                 print(f"Skipping Chunk: {rootchunk.chunkname}")
                 rootchunk.skip()
 
@@ -1178,16 +1179,46 @@ class lwoObject(object):
         self.name, self.ext = os.path.splitext(os.path.basename(filename))
         self.filename = os.path.abspath(filename)
         
-        self.layers = []
-        self.surfs = {}
-        self.tags = []
-        self.clips = {}
+        self.lwo = None
+        
+        #self.layers = []
+        #self.surfs = {}
+        #self.tags = []
+        #self.clips = {}
         
         self.images = []
         self.search_paths = []
         self.allow_missing_images = False
         self.absfilepath = True
 
+    @property
+    def layers(self):
+        if None is self.lwo:
+            return []
+        else:
+            return self.lwo.layers
+        
+    @property
+    def surfs(self):
+        if None is self.lwo:
+            return {}
+        else:
+            return self.lwo.surfs
+        
+    @property
+    def tags(self):
+        if None is self.lwo:
+            return []
+        else:
+            return self.lwo.tags
+        
+    @property
+    def clips(self):
+        if None is self.lwo:
+            return {}
+        else:
+            return self.lwo.clips
+        
     def __eq__(self, x):
         __slots__ = (
             "layers",
@@ -1222,22 +1253,22 @@ class lwoObject(object):
 
         print(f"Importing LWO: {self.filename}")
         if chunk_name == b"LWO2":
-            lwo = LWO2()
+            self.lwo = LWO2()
         elif chunk_name == b"LWOB" or chunk_name == b"LWLO":
             # LWOB and LWLO are the old format, LWLO is a layered object.
-            lwo = LWO()
+            self.lwo = LWO()
         else:
             print("Not a supported file type!")
             self.f.close()
             return
-        print(f"{lwo.type}")
+        print(f"{self.lwo.type}")
         
-        lwo.read_lwo(self.f, self)
+        self.lwo.read_lwo(self.f, self)
         
-        self.layers = lwo.layers
-        self.surfs = lwo.surfs
-        self.tags = lwo.tags
-        self.clips = lwo.clips
+        #self.layers = self.lwo.layers
+        #self.surfs = self.lwo.surfs
+        #self.tags = self.lwo.tags
+        #self.clips = self.lwo.clips
         
         self.f.close()
         del self.f
