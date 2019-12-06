@@ -1018,7 +1018,7 @@ class lwoObject(object):
 
         self.search_paths = []
         self.allow_missing_images = False
-        self.absfilepath = False
+        self.absfilepath = True
 
         # self.read()
 
@@ -1034,8 +1034,8 @@ class lwoObject(object):
             a = getattr(self, k)
             b = getattr(x, k)
             if not a == b:
-                print(f"{k} mismatch:")
-                print(f"\t{a} != {b}")
+#                 print(f"{k} mismatch:")
+#                 print(f"\t{a} != {b}")
                 return False
         return True
 
