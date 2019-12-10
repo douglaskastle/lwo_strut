@@ -36,9 +36,106 @@ class _lwo_base(object):
             d[k] = getattr(self, k)
         return d
 
-#     def __repr__(self):
-#         return str(self.dict)
+    def __repr__(self):
+        return str(self.dict)
 
+class SurfT(object):
+    COLR = b"COLR"
+    DIFF = b"DIFF"
+    LUMI = b"LUMI"
+    SPEC = b"SPEC"
+    REFL = b"REFL"
+    TRAN = b"TRAN"
+    TRNL = b"TRNL"
+    GLOS = b"GLOS"
+    GVAL = b"GVAL"
+    SHRP = b"SHRP"
+    BUMP = b"BUMP"
+    BUF1 = b"BUF1"
+    SIDE = b"SIDE"
+    SMAN = b"SMAN"
+    VERS = b"VERS"
+
+    RFOP = b"RFOP"
+    RIMG = b"RIMG"
+    RSAN = b"RSAN"
+    RBLR = b"RBLR"
+    RIND = b"RIND"
+    TROP = b"TROP"
+    TIMG = b"TIMG"
+    TBLR = b"TBLR"
+
+    CLRS = b"CLRS"
+    CLRF = b"CLRF"
+    ADTR = b"ADTR"
+    GLOW = b"GLOW"
+    LINE = b"LINE"
+    ALPH = b"ALPH"
+
+    VCOL = b"VCOL"
+    NORM = b"NORM"
+    BLOK = b"BLOK"
+    __slots__=()
+
+
+class ReadT(object):
+    FORM = ">4sL4s"
+    TAG  = "4s"
+    TAGU2= ">4sH"
+    LAYR = ">HH"
+    LWID = ">4s"
+    VEC4 = ">4f"
+    VEC3 = ">3f"
+    COL3 = ">3f"
+    ANG4 = ">f"
+    F4   = ">f"
+    U4   = ">I"
+    U2   = ">H"
+    U2U2 = ">HH"
+    UV   = ">ff"
+    OPAC = ">Hf"
+    ISEQ = ">BBhHhh"
+    __slots__=()
+
+CMAP = {
+    SurfT.COLR : ">fffH",
+    SurfT.DIFF : ">fH",
+    SurfT.LUMI : ReadT.F4,
+    SurfT.SPEC : ReadT.F4,
+    SurfT.REFL : ReadT.F4,
+    SurfT.TRAN : ReadT.F4,
+    SurfT.TRNL : ReadT.F4,
+    SurfT.GLOS : ReadT.F4,
+    SurfT.GVAL : ReadT.F4,
+    SurfT.BUMP : ReadT.F4,
+    SurfT.BUF1 : ReadT.F4,
+    SurfT.SMAN : ReadT.U2,
+    SurfT.RFOP : ">HH",
+    SurfT.TROP : ">HH",
+    SurfT.SIDE : ">H",
+    SurfT.BLOK : ReadT.LWID,
+    SurfT.RIND : None,
+    SurfT.VERS : ">HH",
+    b"NODS" : ReadT.U2,
+
+    b"CHAN" : ReadT.U2,
+    b"ENAB" : ReadT.U2,
+    b"OPAC" : ReadT.OPAC,
+    b"AXIS" : ReadT.U2,
+    b"NEGA" : ReadT.U2,
+    
+    b"VALU" : ReadT.U2,
+
+    b"CNTR" : ">fffH",
+    b"SIZE" : ">fffH",
+    b"ROTA" : ">fffH",
+    b"OREF" : "string",      # Possibily text
+    b"ROID" : ">fffH",
+    b"FALL" : ">HfffH",
+    b"CSYS" : ReadT.U2,
+
+    b"PROC" : ">H",
+}
 
 class _obj_layer(_lwo_base):
     __slots__ = (
@@ -106,6 +203,9 @@ class _obj_surf(_lwo_base):
         "shrp",
         "bump",
         "strs",
+        "rfop",
+        "trop",
+        "side",
         "smooth",
         "textures",
         "textures_5",
@@ -129,6 +229,9 @@ class _obj_surf(_lwo_base):
         self.shrp = 0.0  # Diffuse Sharpness
         self.bump = 1.0  # Bump
         self.strs = 0.0  # Smooth Threshold
+        self.rfop = 0    # Reflection Options
+        self.trop = 0    # Transparency Options
+        self.side = 0    # Polygon Sidedness
         self.smooth = False  # Surface Smoothing
         self.textures = {}  # Textures list
         self.textures_5 = []  # Textures list for LWOB
@@ -220,6 +323,10 @@ class LWO2(object):
         self.tags = []
         self.clips = {}
 
+    def unimplemented(self, name=None):
+        pass
+        #raise Exception(f"Unimplemented chunk {name}")
+    
     def read_lwostring(self, raw_name):
         """Parse a zero-padded string."""
 
@@ -626,7 +733,7 @@ class LWO2(object):
         while offset < pols_count:
             (pnts_count,) = struct.unpack(">H", pol_bytes[offset:offset + 2])
             offset += 2
-            all_face_pnts = []
+            all_face_pnts =[]
             for j in range(pnts_count):
                 face_pnt, data_size = self.read_vx(pol_bytes[offset:offset + 4])
                 offset += data_size
@@ -659,12 +766,15 @@ class LWO2(object):
         s_name, s_name_len = self.read_lwostring(surf_bytes[name_len:])
         offset = name_len + s_name_len
         block_size = len(surf_bytes)
+        #print(name, name_len, offset, block_size, s_name, s_name_len)
         while offset < block_size:
             (subchunk_name,) = struct.unpack("4s", surf_bytes[offset:offset + 4])
             offset += 4
             (subchunk_len,) = struct.unpack(">H", surf_bytes[offset:offset + 2])
             offset += 2
     
+            index = CMAP[subchunk_name]
+            #print(offset, block_size, subchunk_name, subchunk_len)
             # Now test which subchunk it is.
             if subchunk_name == b"COLR":
                 surf.colr = struct.unpack(">fff", surf_bytes[offset:offset + 12])
@@ -720,51 +830,88 @@ class LWO2(object):
                 if block_type == b"IMAP" or block_type == b"PROC" or block_type == b"SHDR":
                     # print(surf.name, block_type)
                     texture = self.read_texture(surf_bytes, offset, subchunk_len, debug=debug)
+                    #self.read_chunks(surf_bytes[offset:offset + subchunk_len])
                 else:
                     print(f"Unimplemented texture type: {block_type}")
+                
                 if None is not texture:
                     texture.type = block_type.decode("ascii")
                     if texture.channel not in surf.textures.keys():
                         surf.textures[texture.channel] = []
                     surf.textures[texture.channel].append(texture)
+            
+            elif subchunk_name == b"RFOP":
+                (surf.rfop, _) = struct.unpack(index, surf_bytes[offset:offset + 4])
+            elif subchunk_name == b"TROP":
+                (surf.trop, _) = struct.unpack(index, surf_bytes[offset:offset + 4])
+            elif subchunk_name == b"SIDE":
+                (surf.side, ) = struct.unpack(index, surf_bytes[offset:offset + 2])
             elif subchunk_name == b"VERS":
+                #self.unimplemented(subchunk_name)
+                # Not in Standard
                 pass
             elif subchunk_name == b"NODS":
-                pass
+                #self.unimplemented(subchunk_name)
+                (xx,) = struct.unpack(">H", surf_bytes[offset:offset + 2])
+                #print(xx)
             elif subchunk_name == b"GVAL":
-                pass
+                self.unimplemented(subchunk_name)
             elif subchunk_name == b"NVSK":
-                pass
+                self.unimplemented(subchunk_name)
             elif subchunk_name == b"CLRF":
-                pass
+                self.unimplemented(subchunk_name)
             elif subchunk_name == b"CLRH":
-                pass
+                self.unimplemented(subchunk_name)
             elif subchunk_name == b"ADTR":
-                pass
-            elif subchunk_name == b"SIDE":
-                pass
-            elif subchunk_name == b"RFOP":
-                pass
+                self.unimplemented(subchunk_name)
             elif subchunk_name == b"RIMG":
-                pass
-            elif subchunk_name == b"TROP":
-                pass
+                self.unimplemented(subchunk_name)
             elif subchunk_name == b"ALPH":
-                pass
+                self.unimplemented(subchunk_name)
             elif subchunk_name == b"BUF1":
-                pass
+                self.unimplemented(subchunk_name)
             elif subchunk_name == b"BUF2":
-                pass
+                self.unimplemented(subchunk_name)
             elif subchunk_name == b"BUF3":
-                pass
+                self.unimplemented(subchunk_name)
             elif subchunk_name == b"BUF4":
-                pass
+                self.unimplemented(subchunk_name)
             else:
                 print(f"Unimplemented SubBlock: {subchunk_name}")
     
             offset += subchunk_len
     
         self.surfs[surf.name] = surf
+    
+    def read_chunks(self, lwo_bytes):
+        """Read the object's tmap data."""
+        self.offset = 0
+        block_size = len(lwo_bytes)
+        
+        print(self.offset, block_size)
+        y = OrderedDict()
+        while self.offset < block_size:
+            (subchunk_name,) = struct.unpack("4s", lwo_bytes[self.offset:self.offset + 4])
+            self.offset += 4
+            (subchunk_len,) = struct.unpack(">H", lwo_bytes[self.offset:self.offset + 2])
+            self.offset += 2
+          
+            index = CMAP[subchunk_name]
+            print("chunk", subchunk_name, subchunk_len)            
+            if "string" == index:
+                y[subchunk_name] = lwo_bytes[self.offset:self.offset+subchunk_len]
+
+#             elif SurfT.BLOK == subchunk_name:
+#                 pass
+#                 #self.read_chunks(lwo_bytes[offset:offset+xoffset])
+            else:
+                y[subchunk_name] = struct.unpack(index, lwo_bytes[self.offset:self.offset+subchunk_len])
+            self.offset += subchunk_len
+           
+        
+        pprint(y)
+        return(y)
+        #exit()
     
     def read_texture(self, surf_bytes, offset, subchunk_len, debug=False):
         texture = _surf_texture()
@@ -779,6 +926,7 @@ class LWO2(object):
                 ">H", surf_bytes[offset + suboffset:offset + suboffset + 2]
             )
             suboffset += 2
+            print(subsubchunk_name, suboffset, subchunk_len)
             if subsubchunk_name == b"CHAN":
                 (texture.channel,) = struct.unpack(
                     "4s", surf_bytes[offset + suboffset:offset + suboffset + 4],
@@ -814,45 +962,32 @@ class LWO2(object):
                     ">H", surf_bytes[offset + suboffset:offset + suboffset + 2],
                 )
             elif subsubchunk_name == b"TMAP":
-                if debug:
-                    print(f"SubSubBlock: {subsubchunk_name} {subchunk_len}")
-            #                 xx, = struct.unpack(
-            #                     ">H",
-            #                     surf_bytes[offset + suboffset:offset + suboffset + 2],
-            #                 )
-            #                 print(xx)
+                self.read_chunks(surf_bytes[offset + suboffset:offset + suboffset + subsubchunk_len])
+                #self.unimplemented(subsubchunk_name)
             elif subsubchunk_name == b"AXIS":
-                if debug:
-                    print(f"SubSubBlock: {subsubchunk_name} {subchunk_len}")
-            #                 xx,= struct.unpack(
-            #                     ">H",
-            #                     surf_bytes[offset + suboffset:offset + suboffset + 2],
-            #                 )
-            #                 print(xx)
+                #self.read_chunks(surf_bytes[offset + suboffset:offset + suboffset + subsubchunk_len])
+                self.unimplemented(subsubchunk_name)
+                xx,= struct.unpack(
+                    ">H",
+                    surf_bytes[offset + suboffset:offset + suboffset + 2],
+                )
+                print(xx)
             elif subsubchunk_name == b"WRAP":
-                if debug:
-                    print(f"SubSubBlock: {subsubchunk_name}")
+                self.unimplemented(subsubchunk_name)
             elif subsubchunk_name == b"WRPW":
-                if debug:
-                    print(f"SubSubBlock: {subsubchunk_name}")
+                self.unimplemented(subsubchunk_name)
             elif subsubchunk_name == b"WRPH":
-                if debug:
-                    print(f"SubSubBlock: {subsubchunk_name}")
+                self.unimplemented(subsubchunk_name)
             elif subsubchunk_name == b"AAST":
-                if debug:
-                    print(f"SubSubBlock: {subsubchunk_name}")
+                self.unimplemented(subsubchunk_name)
             elif subsubchunk_name == b"PIXB":
-                if debug:
-                    print(f"SubSubBlock: {subsubchunk_name}")
+                self.unimplemented(subsubchunk_name)
             elif subsubchunk_name == b"VALU":
-                if debug:
-                    print(f"SubSubBlock: {subsubchunk_name}")
+                self.unimplemented(subsubchunk_name)
             elif subsubchunk_name == b"TAMP":
-                if debug:
-                    print(f"SubSubBlock: {subsubchunk_name}")
+                self.unimplemented(subsubchunk_name)
             elif subsubchunk_name == b"STCK":
-                if debug:
-                    print(f"SubSubBlock: {subsubchunk_name}")
+                self.unimplemented(subsubchunk_name)
             else:
                 print(f"Unimplemented SubSubBlock: {subsubchunk_name}")
             suboffset += subsubchunk_len
@@ -935,8 +1070,10 @@ class LWO2(object):
                     self.read_surf_tags(rootchunk.read(), self.last_pols_count)
                 elif tag_type == b"BNUP":
                     self.read_bone_tags(rootchunk.read(), "BNUP")
+                    raise
                 elif tag_type == b"BONE":
                     self.read_bone_tags(rootchunk.read(), "BONE")
+                    raise
                 elif tag_type == b"PART":
                     rootchunk.skip()  # SKIPPING
                 elif tag_type == b"COLR":
@@ -1162,6 +1299,186 @@ class LWO(LWO2):
                 print(f"Skipping Chunk: {rootchunk.chunkname}")
                 rootchunk.skip()
 
+class LWOParser(object):
+    
+    def __init__(self, filename):
+        self.filename = filename
+        
+        self.lwo = OrderedDict()
+        
+        self.f = open(self.filename, "rb")
+        
+        self.read_chunks()
+        self.f.close()
+        del self.f
+        
+        pprint(self.lwo)
+ 
+    def read_vx2(self):
+        """Read a variable-length index."""
+        pointdata = self.f.read(4)
+        if pointdata[0] != 255:
+            index = pointdata[0] * 256 + pointdata[1]
+            self.f.seek(self.f.tell()-2)
+        else:
+            index = pointdata[1] * 65536 + pointdata[2] * 256 + pointdata[3]
+        return index
+
+    def read_lwostring(self):
+        name = ""
+        j = 0
+        while True:
+            i = self.f.read(1)
+            j += 1
+            if i == b"\0":
+                break
+            name += i.decode("utf-8", "ignore")
+        
+        if j % 2 == 1:
+            self.f.read(1)
+        return name
+    
+    def read_tags(self):
+        x = []
+        while self.f.tell() < self.endbyte:
+            x.append(self.read_lwostring())
+        return x
+    
+    def read_layr(self):
+        x = OrderedDict()
+        x['index'], x['flags'] = struct.unpack(">HH", self.f.read(4))
+        x['pivot'] = struct.unpack(">fff", self.f.read(12))
+        x['layr_name'] = self.read_lwostring()
+        x['parent_index'] = -1
+        if self.f.tell() == self.endbyte + 2:
+            (x['parent_index'],) = struct.unpack(">h", self.f.read(2))
+        
+        return x
+        
+#         new_layr = _obj_layer()
+#         new_layr.index = x['index']
+#         # Swap Y and Z to match Blender's pitch.
+#         new_layr.pivot = [x['pivot'][0], x['pivot'][2], x['pivot'][1]]
+#         new_layr.parent_index = x['parent_index']
+#         if x['flags'] > 0 :
+#             new_layr.hidden = True
+#         if x['layr_name']:
+#             new_layr.name = x['layr_name']
+#         else:
+#             new_layr.name = "Layer %d" % (new_layr.index + 1)
+#         return new_layr
+    
+    def read_pnts(self):
+        pnts = []
+        while self.f.tell() < self.endbyte:
+            pnts.append(struct.unpack(">fff", self.f.read(12)))
+        #return(pnts)
+
+    def read_pols(self):
+        pols = []
+        (type, ) = struct.unpack(">4s", self.f.read(4))
+        
+        while self.f.tell() < self.endbyte:
+           face_pnt = self.read_vx2()
+           pols.append(face_pnt)
+
+        #return pols
+    
+    def read_ptag(self):
+        x = OrderedDict()
+        (type, ) = struct.unpack(">4s", self.f.read(4))
+        x[type] = {}
+        while self.f.tell() < self.endbyte:
+            part = self.read_vx2()
+            (smgp, ) = struct.unpack(">H", self.f.read(2))
+            x[type][part] = smgp
+        return(x)
+        pprint(x)
+
+    def read_surf(self):
+        x = {}
+        name = self.read_lwostring()
+        source = self.read_lwostring()
+        print(name, source)
+        
+        while self.f.tell() < self.endbyte:
+            (type, ) = struct.unpack(">4s", self.f.read(4))
+            (subchunk_len, ) = struct.unpack(">H", self.f.read(2))
+            print(type, subchunk_len)
+            
+            if b"NODS" == type:
+                #x[type] = self.read_chunks()
+                print(self.f.tell()+subchunk_len)
+                self.f.seek(self.f.tell()+subchunk_len)
+            else:
+                index = CMAP[type]
+                x[type] = struct.unpack(index, self.f.read(subchunk_len))
+            
+        return x
+    
+    def read_chunks(self, parent=None):
+        """Read the data in chunks."""
+        
+        x = None
+        (chunk_name, chunk_len) = struct.unpack(">4s1L", self.f.read(8))
+#         try:
+#             (chunk_name, chunk_len) = struct.unpack(">4s1L", self.f.read(8))
+#         except:
+#             print(self.f.tell())
+#             #pprint(self.lwo)
+#             exit()
+        
+        print(chunk_name, chunk_len)
+        
+        self.startbyte = self.f.tell()
+        self.endbyte = self.startbyte + chunk_len
+        endbyte = self.endbyte 
+        if b'FORM' == chunk_name:
+            (lwo_type, ) = struct.unpack(">4s", self.f.read(4))
+            x = [chunk_len, lwo_type]
+        elif b'TAGS' == chunk_name:
+            x = self.read_tags()
+        elif b'LAYR' == chunk_name:
+            x = self.read_layr()
+        elif b'PNTS' == chunk_name:
+            x = self.read_pnts()
+        elif b'BBOX' == chunk_name:
+            x = OrderedDict()
+            x['min'] = struct.unpack(">fff", self.f.read(12))
+            x['max'] = struct.unpack(">fff", self.f.read(12))
+        elif b'VMAP' == chunk_name:
+            pass
+            self.f.seek(self.endbyte)
+        elif b'POLS' == chunk_name:
+            x = self.read_pols()
+        elif b'PTAG' == chunk_name:
+            x = self.read_ptag()
+        elif b'SURF' == chunk_name:
+            x = self.read_surf()
+            self.f.seek(self.endbyte)
+        else:
+            self.f.seek(self.endbyte)
+
+        
+        #pprint(x) 
+        if b'LAYR' == chunk_name or b'PTAG' == chunk_name:
+            if not chunk_name in self.lwo.keys():
+                self.lwo[chunk_name] = []
+            self.lwo[chunk_name].append(x)
+        else:
+            self.lwo[chunk_name] = x
+        
+        if b'FORM' == chunk_name:
+            #print(self.f.tell(), endbyte)
+            while self.f.tell() < endbyte:
+                self.read_chunks()
+                print(self.f.tell(), endbyte)
+        
+        if not self.f.tell() == self.endbyte:
+            raise Exception(f"{self.f.tell()} != {self.endbyte}")
+
+        return chunk_name, x
+
 class LWO3(object):
 
     def __init__(self):
@@ -1231,6 +1548,14 @@ class lwoObject(object):
 #                 print(f"\t{a} != {b}")
                 return False
         return True
+    
+
+    def parse_lwo(self):
+        
+        p = LWOParser(self.filename)
+        
+        exit()
+
 
     def read(
         self, ADD_SUBD_MOD=True, LOAD_HIDDEN=False, SKEL_TO_ARM=True,
@@ -1239,6 +1564,9 @@ class lwoObject(object):
         self.load_hidden = LOAD_HIDDEN
         self.skel_to_arm = SKEL_TO_ARM
 
+        
+        #self.parse_lwo()
+       
         self.f = open(self.filename, "rb")
         try:
             header, chunk_size, chunk_name = struct.unpack(">4s1L4s", self.f.read(12))
