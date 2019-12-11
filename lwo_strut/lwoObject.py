@@ -5,7 +5,7 @@ import re
 from glob import glob
 from pprint import pprint
 from collections import OrderedDict
-from .lwoParser import LWOParser
+from .lwoParser import lwoParser
 
 
 class lwoNoImageFoundException(Exception):
@@ -1338,7 +1338,7 @@ class lwoObject(object):
 
     def parse_lwo(self):
         
-        p = LWOParser(self.filename)
+        p = lwoParser(self.filename)
         
         exit()
 

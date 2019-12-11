@@ -107,6 +107,12 @@ CMAP = {
     b"WRPH" : ">fH",
     b"AAST" : ">Hf",
     b"PIXB" : ">H",
+    b"TAMP" : ">fH",
+    b"CLRH" : ">fH",
+    b"CLRF" : ">fH",
+    b"RIMG" : ">H",
+    b"NVSK" : ">H",
+    b"TIMG" : ">H",
 }
 # class ArrayLite(array.array):
 #     pass
@@ -179,7 +185,7 @@ class lwopprint(object):
         lines = self.retStrDict(self.d, 0)
         print("\n".join(lines))
 
-class LWOParser(object):
+class lwoParser(object):
     
     def __init__(self, filename):
         self.filename = filename
@@ -187,6 +193,15 @@ class LWOParser(object):
         self.d = OrderedDict()
        
         self.f = open(self.filename, "rb")
+        
+        self.f.seek(8)
+        (lwo_type, ) = struct.unpack(">4s", self.f.read(4))
+        print(lwo_type)
+        if not b'LWO2' == lwo_type:
+            print(f"Type {lwo_type} not supported yet")
+            return
+            exit()
+        self.f.seek(0)
         
         self.read_chunks()
                 
@@ -233,7 +248,7 @@ class LWOParser(object):
         x['pivot'] = struct.unpack(">fff", self.f.read(12))
         x['layr_name'] = self.read_lwostring()
         x['parent_index'] = -1
-        if self.f.tell() == self.endbyte + 2:
+        if (self.f.tell() + 2) == self.endbyte:
             (x['parent_index'],) = struct.unpack(">h", self.f.read(2))
         
         return x
@@ -316,10 +331,21 @@ class LWOParser(object):
                 x[type] = self.read_tmap(self.f.tell()+subchunk_len)
             elif b'FUNC' == type:
                 x[type] = self.read_lwostring()
-                remlength = (subchunk_len - len(x[type])) & 0xfffffffe
+                if len(x[type]) % 2 == 0:
+                    rem = len(x[type]) + 2
+                else:
+                    rem = len(x[type]) + 1
+                remlength = subchunk_len - rem
+                
                 if x[type] == "Fractal Noise":
                     self.f.read(remlength)
                 elif x[type] == "turbNoise":
+                    self.f.read(remlength)
+                elif x[type] == "Crumple": # "../NASA-3D-Resources/3D Models/Aqua (C)/Aqua-Composite-Full.lwo"
+                    self.f.read(remlength)
+                elif x[type] == "Grid": # "../NASA-3D-Resources/3D Models/Aqua (C)/Aqua-Composite-Full.lwo"
+                    self.f.read(remlength)
+                elif x[type] == "Underwater": # "../NASA-3D-Resources/3D Models/Argo/Argo.lwo
                     self.f.read(remlength)
                 else:
                     raise Exception(f"{type} {x[type]} {subchunk_len} {remlength}")
@@ -328,8 +354,17 @@ class LWOParser(object):
                 x[type] = "FIX"
             else:              
                 index = CMAP[type]
-                x[type] = struct.unpack(index, self.f.read(subchunk_len))
-        
+                if b'OPAC' == type and not subchunk_len == 8: # "../NASA-3D-Resources/3D Models/Aquarius (A)/Aquarius-2010-Composite.lwo"
+                    self.f.seek(endbyte)
+                    break
+                
+                try:
+                    x[type] = struct.unpack(index, self.f.read(subchunk_len))
+                except struct.error:
+                    pprint(x)
+                    print(type, index, subchunk_len, self.f.tell()/16)
+                    raise
+                
         return x
     
     def read_blok(self, endbyte):
@@ -347,7 +382,7 @@ class LWOParser(object):
         x = OrderedDict()
         while self.f.tell() < endbyte:
             (type, ) = struct.unpack(">4s", self.f.read(4))
-            #print(type)
+            print(type)
             if b"NROT" == type:
                 (x, ) = struct.unpack(">H", self.f.read(2))
                 print(x)
@@ -375,6 +410,14 @@ class LWOParser(object):
                 self.f.read(4)
             elif b"NCON" == type:
                 self.f.read(2)
+            elif b"OMDE" == type:
+                self.f.read(6)
+            elif b"OMAX" == type:
+                self.f.read(2)
+            elif b"VPRM" == type:
+                self.f.read(10)
+            elif b"VPVL" == type:
+                self.f.read(8)
             elif b"NSRV" == type or b"NRNM" == type or b"NNME" == type:
                 self.f.read(2)
                 x = self.read_lwostring()
@@ -397,11 +440,16 @@ class LWOParser(object):
             endbyte = self.f.tell()+subchunk_len
             if b"NODS" == type:
                 s = self.f.tell()
-                x[type] = self.read_nods(endbyte)
+                #x[type] = self.read_nods(endbyte)
                 #print(self.f.tell()+subchunk_len)
-                #self.f.seek(s+subchunk_len)
+                self.f.seek(s+subchunk_len)
+            elif b"ENVL" == type: # "../NASA-3D-Resources/3D Models/Aquarius (A)/Aquarius-2010-Composite.lwo"
+                s = self.f.tell()
+                #x[type] = self.read_nods(endbyte)
+                self.f.seek(s+subchunk_len)
             elif b"BLOK" == type:
                 x[type] = self.read_blok(endbyte)
+                pprint(x[type])
             else:
                 index = CMAP[type]
                 x[type] = struct.unpack(index, self.f.read(subchunk_len))
