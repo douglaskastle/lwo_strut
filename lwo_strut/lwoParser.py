@@ -62,6 +62,13 @@ CMAP = {
     b"NVSK" : ">H",
     b"TIMG" : ">H",
     b"NORM" : ">ffffffff",
+    
+    b"TXUV" : ">H",
+    b"GRST" : ">f",
+    b"GREN" : ">f",
+    b"GRPT" : ">H",
+    b"FKEY" : ">fffff", # FIX
+    b"IKEY" : ">H",
 }
 
 class lwopprint(object):
@@ -96,8 +103,8 @@ class lwopprint(object):
         i = 0
         for j in d.keys():
             if isinstance(d[j], dict):
-                s = "{{"
-                e = "}}"
+                s = "{"
+                e = "}"
             else:
                 s = "["
                 e = "]"
@@ -158,7 +165,7 @@ class lwoParser(object):
         lwopprint(self.d)
         #x.pprint()
      
-    def read_vx2(self):
+    def read_vx(self):
         """Read a variable-length index."""
         pointdata = self.f.read(4)
         if pointdata[0] != 255:
@@ -225,7 +232,7 @@ class lwoParser(object):
         (type, ) = struct.unpack(">4s", self.f.read(4))
         
         while self.f.tell() < self.endbyte:
-           face_pnt = self.read_vx2()
+           face_pnt = self.read_vx()
            pols.append(face_pnt)
 
         return pols
@@ -235,26 +242,31 @@ class lwoParser(object):
         (type, ) = struct.unpack(">4s", self.f.read(4))
         x[type] = {}
         while self.f.tell() < self.endbyte:
-            part = self.read_vx2()
+            part = self.read_vx()
             (smgp, ) = struct.unpack(">H", self.f.read(2))
             x[type][part] = smgp
         return(x)
     
     def read_clip(self):
-        #name = self.read_lwostring()
+        x = OrderedDict()
+        y = OrderedDict()
         (index, ) = struct.unpack(">I", self.f.read(4))
-        print(index)
-        (type, _) = struct.unpack(">4sH", self.f.read(6))
-        print(type)
-        #clip = self.read_lwostring()
-        #print(clip)
+        (type, ) = struct.unpack(">4s", self.f.read(4))
+        (subchunk_len, ) = struct.unpack(">H", self.f.read(2))
+        endbyte = self.f.tell()+subchunk_len
+
         if b"STIL" == type:
-            clip = self.read_lwostring()
+            y[type] = self.read_lwostring()
         else:
-            raise
-        print(clip)
+            if self.debug:
+                raise Exception(f"Unknown identifier {type}")
+        x[index] = y
+        #pprint(x)
+
+        if not self.f.tell() == endbyte and self.debug:
+            raise Exception(f"not self.f.tell() == endbyte")
         #exit()
-        #return x
+        return x
 
     def read_tmap(self, endbyte=None):
         x = OrderedDict()
@@ -273,6 +285,36 @@ class lwoParser(object):
                     x[type] = struct.unpack(index, self.f.read(subchunk_len))
         return x
 
+    def read_uvmap(self):
+        x = OrderedDict()
+        name = self.read_lwostring()
+        while self.f.tell() < self.endbyte:
+            pnt_id = self.read_vx()
+            pos = struct.unpack(">ff", self.f.read(8))
+            x[pnt_id] = (pos[0], pos[1])
+
+        return x, name
+    
+    def read_vmap(self, endbyte=None):
+        x = OrderedDict()
+        while self.f.tell() < endbyte:
+            (type, ) = struct.unpack(">4s", self.f.read(4))
+            (subchunk_len, ) = struct.unpack(">H", self.f.read(2))
+            if b'TXUV' == type:
+                y, name = self.read_uvmap()
+                if not type in x.keys():
+                    x[type] = {}
+                x[type][name] = y
+            elif b'PICK' == type: # "../NASA-3D-Resources/3D Models/James Webb Space Telescope (2016)/JWST-2016-Composite.lwo"
+                self.f.seek(self.endbyte)
+            elif b'MBAL' == type: # "../NASA-3D-Resources/3D Models/Laser Interferometer Space Antenna/Lisa-2006.lwo"
+                self.f.seek(self.endbyte)
+            else:              
+                if self.debug:
+                    raise Exception(f"Unknown identifier {type}")
+        return x
+        
+
     def read_texture(self, endbyte=None):
         x = OrderedDict()
         while self.f.tell() < endbyte:
@@ -281,8 +323,11 @@ class lwoParser(object):
             if b'TMAP' == type:
                 x[type] = self.read_tmap(self.f.tell()+subchunk_len)
             elif b'VMAP' == type:
-                #x[type] = self.read_tmap(self.f.tell()+subchunk_len)
-                self.f.seek(self.f.tell()+subchunk_len)
+                x[type] = self.read_lwostring()
+            elif b'PNAM' == type:
+                x[type] = self.read_lwostring()
+            elif b'INAM' == type:
+                x[type] = self.read_lwostring()
             elif b'FUNC' == type:
                 x[type] = self.read_lwostring()
                 if len(x[type]) % 2 == 0:
@@ -307,6 +352,8 @@ class lwoParser(object):
                     self.f.read(remlength)
                 elif x[type] == "LW_FastFresnel": # "../NASA-3D-Resources/3D Models/ISS (High Res)/Objects/Modules/cupola/cupola_open.lwo"
                     self.f.read(remlength)
+                elif x[type] == "Turbulence": # "../NASA-3D-Resources/3D Models/Wind-field Infrared Explorer (WIRE)/WIREcomposite2.lwo"
+                    self.f.read(remlength)
                 else:
                     if self.debug:
                         raise Exception(f"{type} {x[type]} {subchunk_len} {remlength}")
@@ -322,7 +369,7 @@ class lwoParser(object):
                  
                 if not type in CMAP.keys():
                     if self.debug:
-                        raise Exception(f"Unknown identifier {type}")
+                        raise Exception(f"Unknown identifier {type} {subchunk_len}")
                     self.f.read(subchunk_len)
                 else:
                     index = CMAP[type]
@@ -334,7 +381,8 @@ class lwoParser(object):
         x = OrderedDict()
         (type, ) = struct.unpack(">4s", self.f.read(4))
         (chunk_len, ) = struct.unpack(">1L", self.f.read(4))
-        if b"PROC" == type or b"IMAP" == type or b"SHDR" == type:
+        if b"PROC" == type or b"IMAP" == type \
+        or b"SHDR" == type or b"GRAD" == type:
             x[type] = self.read_texture(endbyte)
         else:
             if self.debug:
@@ -394,12 +442,12 @@ class lwoParser(object):
         x = {}
         name = self.read_lwostring()
         source = self.read_lwostring()
-        print(name, source)
+        #print(name, source)
         
         while self.f.tell() < self.endbyte:
             (type, ) = struct.unpack(">4s", self.f.read(4))
             (subchunk_len, ) = struct.unpack(">H", self.f.read(2))
-            print(type, subchunk_len)
+            #print(type, subchunk_len)
             
             endbyte = self.f.tell()+subchunk_len
             if b"NODS" == type:
@@ -413,7 +461,7 @@ class lwoParser(object):
                 self.f.seek(s+subchunk_len)
             elif b"BLOK" == type:
                 x[type] = self.read_blok(endbyte)
-                pprint(x[type])
+                #pprint(x[type])
             else:
                 if not type in CMAP.keys():
                     if self.debug:
@@ -437,7 +485,7 @@ class lwoParser(object):
 #             #pprint(self.lwo)
 #             exit()
         
-        print(chunk_name, chunk_len)
+        #print(chunk_name, chunk_len)
         
         self.startbyte = self.f.tell()
         self.endbyte = self.startbyte + chunk_len
@@ -456,8 +504,8 @@ class lwoParser(object):
             x['min'] = struct.unpack(">fff", self.f.read(12))
             x['max'] = struct.unpack(">fff", self.f.read(12))
         elif b'VMAP' == chunk_name:
-            pass
-            self.f.seek(self.endbyte)
+            x = self.read_vmap(self.endbyte)
+            #self.f.seek(self.endbyte)
         elif b'POLS' == chunk_name:
             x = self.read_pols()
         elif b'PTAG' == chunk_name:
@@ -482,9 +530,9 @@ class lwoParser(object):
         if b'FORM' == chunk_name:
             while self.f.tell() < endbyte:
                 self.read_chunks(self.d[chunk_name])
-                #print(self.f.tell(), endbyte)
-        elif b'LAYR' == chunk_name or b'PTAG' == chunk_name\
-          or b'SURF' == chunk_name:
+        elif b'LAYR' == chunk_name or b'PTAG' == chunk_name \
+          or b'SURF' == chunk_name or b'CLIP' == chunk_name \
+          or b'VMAP' == chunk_name:
             if not chunk_name in d.keys():
                 d[chunk_name] = []
             d[chunk_name].append(x)
@@ -492,6 +540,6 @@ class lwoParser(object):
             d[chunk_name] = x
         
         if not self.f.tell() == self.endbyte:
-            raise Exception(f"{self.f.tell()} != {self.endbyte}")
+            raise Exception(f"not {self.f.tell()} == {self.endbyte}")
 
         return chunk_name, x
