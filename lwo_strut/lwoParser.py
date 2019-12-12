@@ -1,124 +1,69 @@
 import struct
-#import array
 from collections import OrderedDict
 from pprint import pprint
 
-class SurfT(object):
-    COLR = b"COLR"
-    DIFF = b"DIFF"
-    LUMI = b"LUMI"
-    SPEC = b"SPEC"
-    REFL = b"REFL"
-    TRAN = b"TRAN"
-    TRNL = b"TRNL"
-    GLOS = b"GLOS"
-    GVAL = b"GVAL"
-    SHRP = b"SHRP"
-    BUMP = b"BUMP"
-    BUF1 = b"BUF1"
-    SIDE = b"SIDE"
-    SMAN = b"SMAN"
-    VERS = b"VERS"
-
-    RFOP = b"RFOP"
-    RIMG = b"RIMG"
-    RSAN = b"RSAN"
-    RBLR = b"RBLR"
-    RIND = b"RIND"
-    TROP = b"TROP"
-    TIMG = b"TIMG"
-    TBLR = b"TBLR"
-
-    CLRS = b"CLRS"
-    CLRF = b"CLRF"
-    ADTR = b"ADTR"
-    GLOW = b"GLOW"
-    LINE = b"LINE"
-    ALPH = b"ALPH"
-
-    VCOL = b"VCOL"
-    NORM = b"NORM"
-    BLOK = b"BLOK"
-    __slots__=()
-
-
-class ReadT(object):
-    FORM = ">4sL4s"
-    TAG  = "4s"
-    TAGU2= ">4sH"
-    LAYR = ">HH"
-    LWID = ">4s"
-    VEC4 = ">4f"
-    VEC3 = ">3f"
-    COL3 = ">3f"
-    ANG4 = ">f"
-    F4   = ">f"
-    U4   = ">I"
-    U2   = ">H"
-    U2U2 = ">HH"
-    UV   = ">ff"
-    OPAC = ">Hf"
-    ISEQ = ">BBhHhh"
-    __slots__=()
-
 CMAP = {
-    SurfT.COLR : ">fffH",
-    SurfT.DIFF : ">fH",
-    SurfT.LUMI : ">fH",
-    SurfT.SPEC : ">fH",
-    SurfT.REFL : ">fH",
-    SurfT.TRAN : ">fH",
-    SurfT.TRNL : ">fH",
-    SurfT.GLOS : ">fH",
-    SurfT.GVAL : ">fH",
-    SurfT.BUMP : ">fH",
-    SurfT.BUF1 : ">fH",
-    SurfT.RIND : ">fH",
-    SurfT.SMAN : ">HH",
-    SurfT.RFOP : ">H",
-    SurfT.TROP : ">H",
-    SurfT.SIDE : ">H",
-#    SurfT.BLOK : ReadT.LWID,
-    SurfT.VERS : ">HH",
-    b"NODS" : ReadT.U2,
+    b"COLR" : ">fffH",
+    b"DIFF" : ">fH",
+    b"LUMI" : ">fH",
+    b"SPEC" : ">fH",
+    b"REFL" : ">fH",
+    b"TRAN" : ">fH",
+    b"TRNL" : ">fH",
+    b"GLOS" : ">fH",
+    b"SHRP" : ">fH",
+    b"GVAL" : ">fH",
+    b"BUMP" : ">fH",
+    b"BUF1" : ">fH",
+    b"RIND" : ">fH",
+    b"SMAN" : ">HH",
+    b"RFOP" : ">H",
+    b"TROP" : ">H",
+    b"SIDE" : ">H",
+    b"VERS" : ">HH",
+    b"NODS" : ">H",
 
     b"CHAN" : "4s",
-    b"ENAB" : ReadT.U2,
+    b"ENAB" : ">H",
     b"OPAC" : ">HfH",
-    b"AXIS" : ReadT.U2,
-    b"NEGA" : ReadT.U2,
+    b"NEGA" : ">H",
     
-    b"VALU" : ">HH",
     #b"FUNC" : ">HH",
+    #b"OREF" : "string",
 
     b"CNTR" : ">fffH",
     b"SIZE" : ">fffH",
     b"ROTA" : ">fffH",
-    b"OREF" : "string",      # Possibily text
     b"ROID" : ">fffH",
     b"FALL" : ">HfffH",
-    b"CSYS" : ReadT.U2,
+    b"CSYS" : ">H",
 
     b"PROC" : ">H",
     b"PROJ" : ">H",
+    b"AXIS" : ">H",
     b"IMAG" : ">H",
     b"WRAP" : ">HH",
     b"WRPW" : ">fH",
     b"WRPH" : ">fH",
     b"AAST" : ">Hf",
     b"PIXB" : ">H",
+    b"STCK" : ">Hf",
     b"TAMP" : ">fH",
+    b"VALU" : ">HH",
+
     b"CLRH" : ">fH",
     b"CLRF" : ">fH",
+    b"ADTR" : ">fH",
+    b"RBLR" : ">fH",
+    b"ALPH" : ">fH",
+    b"GLOW" : ">HfHfH",
+    b"LINE" : ">HfHfffH",
     b"RIMG" : ">H",
     b"NVSK" : ">H",
     b"TIMG" : ">H",
+    b"NORM" : ">ffffffff",
 }
-# class ArrayLite(array.array):
-#     pass
-#     
-#     def __init__(self, *args):
-#         super(array.array, self).__init__(*args)
+
 class lwopprint(object):
     
     def __init__(self, d):
@@ -187,8 +132,9 @@ class lwopprint(object):
 
 class lwoParser(object):
     
-    def __init__(self, filename):
+    def __init__(self, filename, debug=False):
         self.filename = filename
+        self.debug = debug
         
         self.d = OrderedDict()
        
@@ -318,8 +264,13 @@ class lwoParser(object):
             if b'OREF' == type:
                 x[type] = self.read_lwostring()
             else:              
-                index = CMAP[type]
-                x[type] = struct.unpack(index, self.f.read(subchunk_len))
+                if not type in CMAP.keys():
+                    if self.debug:
+                        raise Exception(f"Unknown identifier {type}")
+                    self.f.read(subchunk_len)
+                else:
+                    index = CMAP[type]
+                    x[type] = struct.unpack(index, self.f.read(subchunk_len))
         return x
 
     def read_texture(self, endbyte=None):
@@ -329,6 +280,9 @@ class lwoParser(object):
             (subchunk_len, ) = struct.unpack(">H", self.f.read(2))
             if b'TMAP' == type:
                 x[type] = self.read_tmap(self.f.tell()+subchunk_len)
+            elif b'VMAP' == type:
+                #x[type] = self.read_tmap(self.f.tell()+subchunk_len)
+                self.f.seek(self.f.tell()+subchunk_len)
             elif b'FUNC' == type:
                 x[type] = self.read_lwostring()
                 if len(x[type]) % 2 == 0:
@@ -347,23 +301,32 @@ class lwoParser(object):
                     self.f.read(remlength)
                 elif x[type] == "Underwater": # "../NASA-3D-Resources/3D Models/Argo/Argo.lwo
                     self.f.read(remlength)
+                elif x[type] == "Dots": # "../NASA-3D-Resources/3D Models/MMS (2014)/MMS-2014-composite.lwo
+                    self.f.read(remlength)
+                elif x[type] == "Edge_Transparency": # "../NASA-3D-Resources/3D Models/ISS (High Res)/Objects/Modules/cupola/cupola_open.lwo"
+                    self.f.read(remlength)
+                elif x[type] == "LW_FastFresnel": # "../NASA-3D-Resources/3D Models/ISS (High Res)/Objects/Modules/cupola/cupola_open.lwo"
+                    self.f.read(remlength)
                 else:
-                    raise Exception(f"{type} {x[type]} {subchunk_len} {remlength}")
+                    if self.debug:
+                        raise Exception(f"{type} {x[type]} {subchunk_len} {remlength}")
+                    else:
+                        self.f.read(remlength)
             elif b'VALU' == type:
                 self.f.read(subchunk_len)
                 x[type] = "FIX"
             else:              
-                index = CMAP[type]
                 if b'OPAC' == type and not subchunk_len == 8: # "../NASA-3D-Resources/3D Models/Aquarius (A)/Aquarius-2010-Composite.lwo"
                     self.f.seek(endbyte)
                     break
-                
-                try:
+                 
+                if not type in CMAP.keys():
+                    if self.debug:
+                        raise Exception(f"Unknown identifier {type}")
+                    self.f.read(subchunk_len)
+                else:
+                    index = CMAP[type]
                     x[type] = struct.unpack(index, self.f.read(subchunk_len))
-                except struct.error:
-                    pprint(x)
-                    print(type, index, subchunk_len, self.f.tell()/16)
-                    raise
                 
         return x
     
@@ -371,10 +334,11 @@ class lwoParser(object):
         x = OrderedDict()
         (type, ) = struct.unpack(">4s", self.f.read(4))
         (chunk_len, ) = struct.unpack(">1L", self.f.read(4))
-        if b"PROC" == type or b"IMAP" == type:
+        if b"PROC" == type or b"IMAP" == type or b"SHDR" == type:
             x[type] = self.read_texture(endbyte)
         else:
-            raise
+            if self.debug:
+                raise Exception(f"Unknown identifier {type}")
             
         return x
 
@@ -451,8 +415,13 @@ class lwoParser(object):
                 x[type] = self.read_blok(endbyte)
                 pprint(x[type])
             else:
-                index = CMAP[type]
-                x[type] = struct.unpack(index, self.f.read(subchunk_len))
+                if not type in CMAP.keys():
+                    if self.debug:
+                        raise Exception(f"Unknown identifier {type}")
+                    self.f.read(subchunk_len)
+                else:
+                    index = CMAP[type]
+                    x[type] = struct.unpack(index, self.f.read(subchunk_len))
             
         return x
     

@@ -40,103 +40,103 @@ class _lwo_base(object):
     def __repr__(self):
         return str(self.dict)
 
-class SurfT(object):
-    COLR = b"COLR"
-    DIFF = b"DIFF"
-    LUMI = b"LUMI"
-    SPEC = b"SPEC"
-    REFL = b"REFL"
-    TRAN = b"TRAN"
-    TRNL = b"TRNL"
-    GLOS = b"GLOS"
-    GVAL = b"GVAL"
-    SHRP = b"SHRP"
-    BUMP = b"BUMP"
-    BUF1 = b"BUF1"
-    SIDE = b"SIDE"
-    SMAN = b"SMAN"
-    VERS = b"VERS"
-
-    RFOP = b"RFOP"
-    RIMG = b"RIMG"
-    RSAN = b"RSAN"
-    RBLR = b"RBLR"
-    RIND = b"RIND"
-    TROP = b"TROP"
-    TIMG = b"TIMG"
-    TBLR = b"TBLR"
-
-    CLRS = b"CLRS"
-    CLRF = b"CLRF"
-    ADTR = b"ADTR"
-    GLOW = b"GLOW"
-    LINE = b"LINE"
-    ALPH = b"ALPH"
-
-    VCOL = b"VCOL"
-    NORM = b"NORM"
-    BLOK = b"BLOK"
-    __slots__=()
-
-
-class ReadT(object):
-    FORM = ">4sL4s"
-    TAG  = "4s"
-    TAGU2= ">4sH"
-    LAYR = ">HH"
-    LWID = ">4s"
-    VEC4 = ">4f"
-    VEC3 = ">3f"
-    COL3 = ">3f"
-    ANG4 = ">f"
-    F4   = ">f"
-    U4   = ">I"
-    U2   = ">H"
-    U2U2 = ">HH"
-    UV   = ">ff"
-    OPAC = ">Hf"
-    ISEQ = ">BBhHhh"
-    __slots__=()
-
-CMAP = {
-    SurfT.COLR : ">fffH",
-    SurfT.DIFF : ">fH",
-    SurfT.LUMI : ">fH",
-    SurfT.SPEC : ">fH",
-    SurfT.REFL : ">fH",
-    SurfT.TRAN : ">fH",
-    SurfT.TRNL : ">fH",
-    SurfT.GLOS : ">fH",
-    SurfT.GVAL : ">fH",
-    SurfT.BUMP : ">fH",
-    SurfT.BUF1 : ">fH",
-    SurfT.RIND : ">fH",
-    SurfT.SMAN : ">HH",
-    SurfT.RFOP : ">H",
-    SurfT.TROP : ">H",
-    SurfT.SIDE : ">H",
-#    SurfT.BLOK : ReadT.LWID,
-    SurfT.VERS : ">HH",
-    b"NODS" : ReadT.U2,
-
-    b"CHAN" : ReadT.U2,
-    b"ENAB" : ReadT.U2,
-    b"OPAC" : ReadT.OPAC,
-    b"AXIS" : ReadT.U2,
-    b"NEGA" : ReadT.U2,
-    
-    b"VALU" : ReadT.U2,
-
-    b"CNTR" : ">fffH",
-    b"SIZE" : ">fffH",
-    b"ROTA" : ">fffH",
-    b"OREF" : "string",      # Possibily text
-    b"ROID" : ">fffH",
-    b"FALL" : ">HfffH",
-    b"CSYS" : ReadT.U2,
-
-    b"PROC" : ">H",
-}
+# class SurfT(object):
+#     COLR = b"COLR"
+#     DIFF = b"DIFF"
+#     LUMI = b"LUMI"
+#     SPEC = b"SPEC"
+#     REFL = b"REFL"
+#     TRAN = b"TRAN"
+#     TRNL = b"TRNL"
+#     GLOS = b"GLOS"
+#     GVAL = b"GVAL"
+#     SHRP = b"SHRP"
+#     BUMP = b"BUMP"
+#     BUF1 = b"BUF1"
+#     SIDE = b"SIDE"
+#     SMAN = b"SMAN"
+#     VERS = b"VERS"
+# 
+#     RFOP = b"RFOP"
+#     RIMG = b"RIMG"
+#     RSAN = b"RSAN"
+#     RBLR = b"RBLR"
+#     RIND = b"RIND"
+#     TROP = b"TROP"
+#     TIMG = b"TIMG"
+#     TBLR = b"TBLR"
+# 
+#     CLRS = b"CLRS"
+#     CLRF = b"CLRF"
+#     ADTR = b"ADTR"
+#     GLOW = b"GLOW"
+#     LINE = b"LINE"
+#     ALPH = b"ALPH"
+# 
+#     VCOL = b"VCOL"
+#     NORM = b"NORM"
+#     BLOK = b"BLOK"
+#     __slots__=()
+# 
+# 
+# class ReadT(object):
+#     FORM = ">4sL4s"
+#     TAG  = "4s"
+#     TAGU2= ">4sH"
+#     LAYR = ">HH"
+#     LWID = ">4s"
+#     VEC4 = ">4f"
+#     VEC3 = ">3f"
+#     COL3 = ">3f"
+#     ANG4 = ">f"
+#     F4   = ">f"
+#     U4   = ">I"
+#     U2   = ">H"
+#     U2U2 = ">HH"
+#     UV   = ">ff"
+#     OPAC = ">Hf"
+#     ISEQ = ">BBhHhh"
+#     __slots__=()
+# 
+# CMAP = {
+#     SurfT.COLR : ">fffH",
+#     SurfT.DIFF : ">fH",
+#     SurfT.LUMI : ">fH",
+#     SurfT.SPEC : ">fH",
+#     SurfT.REFL : ">fH",
+#     SurfT.TRAN : ">fH",
+#     SurfT.TRNL : ">fH",
+#     SurfT.GLOS : ">fH",
+#     SurfT.GVAL : ">fH",
+#     SurfT.BUMP : ">fH",
+#     SurfT.BUF1 : ">fH",
+#     SurfT.RIND : ">fH",
+#     SurfT.SMAN : ">HH",
+#     SurfT.RFOP : ">H",
+#     SurfT.TROP : ">H",
+#     SurfT.SIDE : ">H",
+# #    SurfT.BLOK : ReadT.LWID,
+#     SurfT.VERS : ">HH",
+#     b"NODS" : ReadT.U2,
+# 
+#     b"CHAN" : ReadT.U2,
+#     b"ENAB" : ReadT.U2,
+#     b"OPAC" : ReadT.OPAC,
+#     b"AXIS" : ReadT.U2,
+#     b"NEGA" : ReadT.U2,
+#     
+#     b"VALU" : ReadT.U2,
+# 
+#     b"CNTR" : ">fffH",
+#     b"SIZE" : ">fffH",
+#     b"ROTA" : ">fffH",
+#     b"OREF" : "string",      # Possibily text
+#     b"ROID" : ">fffH",
+#     b"FALL" : ">HfffH",
+#     b"CSYS" : ReadT.U2,
+# 
+#     b"PROC" : ">H",
+# }
 
 class _obj_layer(_lwo_base):
     __slots__ = (
@@ -894,7 +894,7 @@ class LWO2(object):
                 ">H", surf_bytes[offset + suboffset:offset + suboffset + 2]
             )
             suboffset += 2
-            print(subsubchunk_name, suboffset, subchunk_len)
+            #print(subsubchunk_name, suboffset, subchunk_len)
             if subsubchunk_name == b"CHAN":
                 (texture.channel,) = struct.unpack(
                     "4s", surf_bytes[offset + suboffset:offset + suboffset + 4],
