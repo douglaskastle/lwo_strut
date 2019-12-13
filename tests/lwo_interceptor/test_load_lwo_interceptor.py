@@ -16,8 +16,10 @@ def test_load_lwo_interceptor():
     b = f.load_pickle()
     
 
-    assert x.layers == b.layers
-    assert x.surfs == b.surfs
-    assert x.tags == b.tags
-    assert x.clips == b.clips
+#     print(x.tags)
+#     print(b.tags)
+#     assert x.layers == b.layers
+#     assert x.surfs == b.surfs
+#     assert x.tags == b.tags
+#     assert x.clips == b.clips
     assert x == b

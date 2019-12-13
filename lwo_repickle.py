@@ -22,7 +22,8 @@ def main():
         x.read()
     
         #print(f.picklefile)
-        os.unlink(f.picklefile)
+        if os.path.isfile(f.picklefile):
+            os.unlink(f.picklefile)
         f.setup_pickle(x)
     
         b = f.load_pickle()
@@ -37,9 +38,9 @@ def main():
     x = lwoObject(infile)
     x.read()
     
-    print(f.picklefile)
+    #print(f.picklefile)
     f.picklefile = re.sub(".lwo.pickle", ".lwo.error0.pickle", f.picklefile)
-    print(f.picklefile)
+    #print(f.picklefile)
 
     x.layers[0].name = "Layer 2"
     os.unlink(f.picklefile)
@@ -47,7 +48,7 @@ def main():
     
     b = f.load_pickle()
     
-    print(x == b)
+    #print(x == b)
 
 
 if __name__ == "__main__":
