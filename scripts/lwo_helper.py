@@ -1,4 +1,5 @@
 import os
+import sys
 import pickle
 import re
 import zipfile
@@ -12,6 +13,7 @@ class LwoFile(object):
         self.create_pickle = create_pickle
         self.picklefile = self.infile + ".pickle"
         self.picklefile = re.sub("src", "pickle", self.picklefile)
+        self.pickle = None
 
     def check_file(self):
         edit_infile = self.infile
@@ -52,7 +54,20 @@ class LwoFile(object):
         print(self.picklefile)
         with open(self.picklefile, "rb") as f:
             try:
-                return pickle.load(f)
-            except ValueError:
+                self.pickle = pickle.load(f)
+            except ValueError as e:
                 # 3.8 pickle is different from 3.7, don't care if the pickle fails
-                pass
+                if sys.version_info[1] <= 7:
+                    self.pickle = None
+                else:
+                    raise Exception(e)
+            return self.pickle
+     
+    def test_pickle(self, x):
+        if self.pickle is None:
+            self.load_pickle()
+            
+        if self.pickle is None:
+            return True
+        return self.pickle == x
+         

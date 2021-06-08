@@ -16,7 +16,6 @@ def test_load_lwo_interceptor():
     
     y = x.elements    
 
-    f.setup_pickle(y)
-    b = f.load_pickle()
+    #f.setup_pickle(y)
 
-    assert y == b
+    assert f.test_pickle(y)
