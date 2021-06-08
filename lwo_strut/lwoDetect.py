@@ -3,6 +3,7 @@ import struct
 from .LWO1 import LWO1
 from .LWO2 import LWO2
 from .LWO3 import LWO3
+from .lwoExceptions import lwoUnsupportedFileException
 
 
 class LWODetect:

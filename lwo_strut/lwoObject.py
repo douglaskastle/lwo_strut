@@ -25,15 +25,7 @@ from collections import OrderedDict
 
 from .lwoDetect import LWODetect
 from .lwoLogger import LWOLogger
-
-
-class lwoNoImageFoundException(Exception):
-    pass
-
-
-class lwoUnsupportedFileException(Exception):
-    pass
-
+from .lwoExceptions import lwoNoImageFoundException
 
 class chd:
     def __init__(self):
@@ -44,8 +36,8 @@ class chd:
         self.images = {}
         self.cancel_search = False
 
-
 class lwoObject:
+    
     def __init__(self, filename, loglevel=logging.INFO):
         self.name, self.ext = os.path.splitext(os.path.basename(filename))
         self.filename = os.path.abspath(filename)
@@ -55,22 +47,22 @@ class lwoObject:
         self.absfilepath = True
         self.cwd = os.getcwd()
         self.loglevel = loglevel
-
+        
         self.l = LWOLogger("WRAP", self.loglevel)
         self.ch = chd()
-
+        
     @property
     def layers(self):
         return self.lwo.layers
-
+        
     @property
     def surfs(self):
         return self.lwo.surfs
-
+        
     @property
     def materials(self):
         return self.lwo.materials
-
+        
     @property
     def tags(self):
         return self.lwo.tags
@@ -82,7 +74,8 @@ class lwoObject:
     @property
     def images(self):
         return self.lwo.images
-
+        
+        
     def __eq__(self, x):
         __slots__ = (
             "layers",
@@ -107,6 +100,7 @@ class lwoObject:
         self.lwo = LWODetect(self.filename, self.loglevel)
         self.lwo.ch = self.ch
         self.lwo.read_lwo()
+        
 
     @property
     def elements(self):
@@ -123,7 +117,7 @@ class lwoObject:
         d["clips"] = self.clips
         d["images"] = self.images
         return d
-
+    
     def pprint(self):
         pprint(self.elements)
 
@@ -138,17 +132,17 @@ class lwoObject:
             else:
                 paths.append(s)
         return paths
-
+    
     def resolve_clips(self):
         files = []
         for search_path in self.search_paths:
             files.extend(glob(f"{search_path}/**/*.*", recursive=self.ch.recursive))
-
+        
         for c_id in self.clips:
             clip = self.clips[c_id]
             # LW is windows tools, so windows path need to be replaced
             # under linux, and treated the sameunder windows
-            imagefile = os.path.basename(clip.replace("\\", os.sep))
+            imagefile = os.path.basename(clip.replace('\\', os.sep))
             ifile = None
             for f in files:
                 if re.search(re.escape(imagefile), f, re.I):
@@ -160,13 +154,13 @@ class lwoObject:
                     if ifile not in self.images:
                         self.images.append(ifile)
                     continue
-
+            
             self.ch.images[c_id] = ifile
 
         for c_id in self.clips:
             if None is self.ch.images[c_id] and not self.ch.cancel_search:
                 raise lwoNoImageFoundException(
-                    f'Can\'t find filepath for image: "{self.clips[c_id]}"'
+                    f"Can't find filepath for image: \"{self.clips[c_id]}\""
                 )
 
     def validate_lwo(self):
@@ -177,14 +171,13 @@ class lwoObject:
                 for texture in surf_data.textures[textures_type]:
                     ci = texture.clipid
                     if ci not in self.clips.keys():
-                        # if ci not in self.ch.images.keys():
+                    #if ci not in self.ch.images.keys():
                         self.l.debug(f"WARNING in material {surf_data.name}")
                         self.l.debug(f"    ci={ci}, not present in self.clips.keys():")
                         self.ch.images[ci] = None
                     texture.image = self.ch.images[ci]
 
-
 #             for texture in surf_data.textures_5:
 #                 ci = texture.id
 #                 texture.image = self.ch.images[ci]
-#
+# 
