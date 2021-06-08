@@ -1,3 +1,4 @@
+import sys
 from lwo_strut.lwoObject import lwoObject
 from scripts.lwo_helper import LwoFile
 
@@ -23,9 +24,10 @@ def test_load_lwo_box0_fail():
     x.read()
     y = x.elements
 
-    # f.setup_pickle(x)
     f.picklefile = "tests/basic/pickle/LWO2/box/box0.lwo.error0.pickle"
 
+    if sys.version_info[1] <= 7:
+        return
     assert not f.test_pickle(y)
 
 def test_load_lwo_box3():
