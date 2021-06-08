@@ -9,11 +9,12 @@ def test_load_lwo_box0_pass():
 
     x = lwoObject(infile)
     x.read()
+    y = x.elements
 
-    f.setup_pickle(x)
+    f.setup_pickle(y)
     b = f.load_pickle()
 
-    assert x == b
+    assert y == b
 
 
 def test_load_lwo_box0_fail():
@@ -23,12 +24,13 @@ def test_load_lwo_box0_fail():
 
     x = lwoObject(infile)
     x.read()
+    y = x.elements
 
     # f.setup_pickle(x)
     f.picklefile = "tests/basic/pickle/LWO2/box/box0.lwo.error0.pickle"
     b = f.load_pickle()
 
-    assert not x == b
+    assert not y == b
 
 def test_load_lwo_box3():
     infile = "tests/basic/src/LWO/box/box3-uv-layers.lwo"
@@ -37,11 +39,12 @@ def test_load_lwo_box3():
 
     x = lwoObject(infile)
     x.read()
+    y = x.elements
 
-    f.setup_pickle(x)
+    f.setup_pickle(y)
     b = f.load_pickle()
 
-    assert x == b
+    assert y == b
 
 def test_load_lwo_box6():
     infile = "tests/basic/src/LWO2/box/box6-hidden.lwo"
@@ -50,9 +53,10 @@ def test_load_lwo_box6():
 
     x = lwoObject(infile)
     x.read()
+    y = x.elements
 
-    f.setup_pickle(x)
+    f.setup_pickle(y)
     b = f.load_pickle()
 
-    assert x == b
+    assert y == b
 

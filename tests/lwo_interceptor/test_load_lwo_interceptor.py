@@ -8,18 +8,15 @@ def test_load_lwo_interceptor():
     f.check_file()
 
     x = lwoObject(infile)
-    x.search_paths = ["/../images"]
+    x.ch.search_paths = ["../images"]
     x.absfilepath = False
     x.read()
-
-    f.setup_pickle(x)
-    b = f.load_pickle()
+    x.resolve_clips()
+    x.validate_lwo()
     
+    y = x.elements    
 
-#     print(x.tags)
-#     print(b.tags)
-#     assert x.layers == b.layers
-#     assert x.surfs == b.surfs
-#     assert x.tags == b.tags
-#     assert x.clips == b.clips
-    assert x == b
+    f.setup_pickle(y)
+    b = f.load_pickle()
+
+    assert y == b

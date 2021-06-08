@@ -44,10 +44,11 @@ class LwoFile(object):
         head, tail = os.path.split(os.path.realpath(self.picklefile))
         pathlib.Path(head).mkdir(parents=True, exist_ok=True)
 
-        if not os.path.isfile(self.picklefile) and self.create_pickle:
+        if not os.path.isfile(self.picklefile) or  self.create_pickle:
             with open(self.picklefile, "wb") as f:
                 pickle.dump(x, f, pickle.HIGHEST_PROTOCOL)
 
     def load_pickle(self):
+        print(self.picklefile)
         with open(self.picklefile, "rb") as f:
             return pickle.load(f)

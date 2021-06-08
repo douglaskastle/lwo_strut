@@ -1,1217 +1,86 @@
+# ##### BEGIN GPL LICENSE BLOCK #####
+#
+#  This program is free software; you can redistribute it and/or
+#  modify it under the terms of the GNU General Public License
+#  as published by the Free Software Foundation; either version 2
+#  of the License, or (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software Foundation,
+#  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+#
+# ##### END GPL LICENSE BLOCK #####
+
 import os
-import struct
-import chunk
 import re
+import logging
 from glob import glob
 from pprint import pprint
 from collections import OrderedDict
-from .lwoParser import lwoParser
 
+from .lwoDetect import LWODetect
+from .lwoLogger import LWOLogger
 
 class lwoNoImageFoundException(Exception):
     pass
 
 
-class _lwo_base(object):
-    def __eq__(self, x):
-        if not isinstance(x, self.__class__):
-            return False
-        
-#         raise Exception(len(self.__slots__), len(x.__slots__))
-#         if not len(self.__slots__) == len(x.__slots__):
-#             print("Different number of __slots__")
-#             return False
-        for k in self.__slots__:
-            a = getattr(self, k)
-            b = getattr(x, k)
-            if not a == b:
-                print(f"{k} mismatch:")
-                print(f"\t{a} != {b}")
-                return False
-        return True
+class lwoUnsupportedFileException(Exception):
+    pass
 
-    @property
-    def dict(self):
-        d = OrderedDict()
-        for k in self.__slots__:
-            d[k] = getattr(self, k)
-        return d
-
-    def __repr__(self):
-        return str(self.dict)
-
-class _obj_layer(_lwo_base):
-    __slots__ = (
-        "name",
-        "index",
-        "parent_index",
-        "pivot",
-        "pols",
-        "bones",
-        "bone_names",
-        "bone_rolls",
-        "pnts",
-        "vnorms",
-        "lnorms",
-        "wmaps",
-        "colmaps",
-        "uvmaps_vmad",
-        "uvmaps_vmap",
-        "morphs",
-        "edge_weights",
-        "surf_tags",
-        "has_subds",
-        "hidden",
-    )
-
+class chd:
     def __init__(self):
-        self.name = ""
-        self.index = -1
-        self.parent_index = -1
-        self.pivot = [0, 0, 0]
-        self.pols = []
-        self.bones = []
-        self.bone_names = {}
-        self.bone_rolls = {}
-        self.pnts = []
-        self.vnorms = {}
-        self.lnorms = {}
-        self.wmaps = {}
-        self.colmaps = {}
-        self.uvmaps_vmad = {}
-        self.uvmaps_vmap = {}
-        self.morphs = {}
-        self.edge_weights = {}
-        self.surf_tags = {}
-        self.has_subds = False
-        self.hidden = False
+        self.load_hidden = True
+        self.skel_to_arm = False
+        self.search_paths = []
+        self.recursive = True
+        self.images = {}
+        self.cancel_search = False
 
-
-class _obj_surf(_lwo_base):
-    __slots__ = (
-        "bl_mat",
-        "name",
-        "source_name",
-        "colr",
-        "diff",
-        "lumi",
-        "spec",
-        "refl",
-        "rblr",
-        "tran",
-        "rind",
-        "tblr",
-        "trnl",
-        "glos",
-        "shrp",
-        "bump",
-        "strs",
-        "rfop",
-        "trop",
-        "side",
-        "smooth",
-        "textures",
-        "textures_5",
-    )
-
-    def __init__(self):
-        self.bl_mat = None
-        self.name = "Default"
-        self.source_name = ""
-        self.colr = [1.0, 1.0, 1.0]
-        self.diff = 1.0  # Diffuse
-        self.lumi = 0.0  # Luminosity
-        self.spec = 0.0  # Specular
-        self.refl = 0.0  # Reflectivity
-        self.rblr = 0.0  # Reflection Bluring
-        self.tran = 0.0  # Transparency (the opposite of Blender's Alpha value)
-        self.rind = 1.0  # RT Transparency IOR
-        self.tblr = 0.0  # Refraction Bluring
-        self.trnl = 0.0  # Translucency
-        self.glos = 0.4  # Glossiness
-        self.shrp = 0.0  # Diffuse Sharpness
-        self.bump = 1.0  # Bump
-        self.strs = 0.0  # Smooth Threshold
-        self.rfop = 0    # Reflection Options
-        self.trop = 0    # Transparency Options
-        self.side = 0    # Polygon Sidedness
-        self.smooth = False  # Surface Smoothing
-        self.textures = {}  # Textures list
-        self.textures_5 = []  # Textures list for LWOB
-
-    def lwoprint(self):
-        print(f"SURFACE")
-        print(f"Surface Name:       {self.name}")
-        print(f"Color:              {int(self.colr[0]*256)} {int(self.colr[1]*256)} {int(self.colr[2]*256)}")
-        print(f"Luminosity:         {self.lumi*100:>8.1f}%")
-        print(f"Diffuse:            {self.diff*100:>8.1f}%")
-        print(f"Specular:           {self.spec*100:>8.1f}%")
-        print(f"Glossiness:         {self.glos*100:>8.1f}%")
-        print(f"Reflection:         {self.refl*100:>8.1f}%")
-        print(f"Transparency:       {self.tran*100:>8.1f}%")
-        print(f"Refraction Index:   {self.rind:>8.1f}")
-        print(f"Translucency:       {self.trnl*100:>8.1f}%")
-        print(f"Bump:               {self.bump*100:>8.1f}%")
-        print(f"Smoothing:          {self.smooth:>8}")
-        print(f"Smooth Threshold:   {self.strs*100:>8.1f}%")
-        print(f"Reflection Bluring: {self.rblr*100:>8.1f}%")
-        print(f"Refraction Bluring: {self.tblr*100:>8.1f}%")
-        print(f"Diffuse Sharpness:  {self.shrp*100:>8.1f}%")
-        print()
-        for textures_type in self.textures.keys():
-            print(textures_type)
-            for texture in self.textures[textures_type]:
-                texture.lwoprint(indent=1)
-
-
-class _surf_texture(_lwo_base):
-    __slots__ = (
-        "opac",
-        "opactype",
-        "enab",
-        "clipid",
-        "projection",
-        "enab",
-        "uvname",
-        "channel",
-        "type",
-        "func",
-        "clip",
-        "nega",
-    )
-
-    def __init__(self):
-        self.clipid = 1
-        self.opac = 1.0
-        self.opactype = 0
-        self.enab = True
-        self.projection = 5
-        self.uvname = "UVMap"
-        self.channel = "COLR"
-        self.type = "IMAP"
-        self.func = None
-        self.clip = None
-        self.nega = None
-
-    def lwoprint(self, indent=0):
-        print(f"TEXTURE")
-        print(f"ClipID:         {self.clipid}")
-        print(f"Opacity:        {self.opac*100:.1f}%")
-        print(f"Opacity Type:   {self.opactype}")
-        print(f"Enabled:        {self.enab}")
-        print(f"Projection:     {self.projection}")
-        print(f"UVname:         {self.uvname}")
-        print(f"Channel:        {self.channel}")
-        print(f"Type:           {self.type}")
-        print(f"Function:       {self.func}")
-        print(f"Clip:           {self.clip}")
-        print()
-
-
-class _surf_texture_5(_lwo_base):
-    __slots__ = ("path", "X", "Y", "Z")
-
-    def __init__(self):
-        self.path = ""
-        self.X = False
-        self.Y = False
-        self.Z = False
-
-class LWO2(object):
+class lwoObject:
     
-    def __init__(self):
-        self.type = "LWO2"
-        self.layers = []
-        self.surfs = {}
-        self.tags = []
-        self.clips = {}
-
-    def unimplemented(self, name=None):
-        pass
-        #raise Exception(f"Unimplemented chunk {name}")
-    
-    def read_lwostring(self, raw_name):
-        """Parse a zero-padded string."""
-
-        i = raw_name.find(b"\0")
-        name_len = i + 1
-        if name_len % 2 == 1:  # Test for oddness.
-            name_len += 1
-
-        if i > 0:
-            # Some plugins put non-text strings in the tags chunk.
-            name = raw_name[0:i].decode("utf-8", "ignore")
-        else:
-            name = ""
-
-        return name, name_len
-
-    def read_vx(self, pointdata):
-        """Read a variable-length index."""
-        if pointdata[0] != 255:
-            index = pointdata[0] * 256 + pointdata[1]
-            size = 2
-        else:
-            index = pointdata[1] * 65536 + pointdata[2] * 256 + pointdata[3]
-            size = 4
-
-        return index, size
-
-    def read_tags(self, tag_bytes):
-        """Read the object's Tags chunk."""
-        offset = 0
-        chunk_len = len(tag_bytes)
-
-        while offset < chunk_len:
-            tag, tag_len = self.read_lwostring(tag_bytes[offset:])
-            offset += tag_len
-            #lwo.tags.append(tag)
-            self.tags.append(tag)
-
-    def read_pnts(self, pnt_bytes):
-        """Read the layer's points."""
-        print(f"\tReading Layer ({self.layers[-1].name }) Points")
-        offset = 0
-        chunk_len = len(pnt_bytes)
-
-        while offset < chunk_len:
-            pnts = struct.unpack(">fff", pnt_bytes[offset:offset + 12])
-            offset += 12
-            # Re-order the points so that the mesh has the right pitch,
-            # the pivot already has the correct order.
-            pnts = [
-                pnts[0] - self.layers[-1].pivot[0],
-                pnts[2] - self.layers[-1].pivot[1],
-                pnts[1] - self.layers[-1].pivot[2],
-            ]
-            self.layers[-1].pnts.append(pnts)
-
-    def read_morph(self, morph_bytes, is_abs):
-        """Read an endomorph's relative or absolute displacement values."""
-        chunk_len = len(morph_bytes)
-        offset = 2
-        name, name_len = self.read_lwostring(morph_bytes[offset:])
-        offset += name_len
-        deltas = []
-    
-        while offset < chunk_len:
-            pnt_id, pnt_id_len = self.read_vx(morph_bytes[offset:offset + 4])
-            offset += pnt_id_len
-            pos = struct.unpack(">fff", morph_bytes[offset:offset + 12])
-            offset += 12
-            pnt = self.layers[-1].pnts[pnt_id]
-    
-            if is_abs:
-                deltas.append([pnt_id, pos[0], pos[2], pos[1]])
-            else:
-                # Swap the Y and Z to match Blender's pitch.
-                deltas.append([pnt_id, pnt[0] + pos[0], pnt[1] + pos[2], pnt[2] + pos[1]])
-    
-            self.layers[-1].morphs[name] = deltas
-
-    def read_weightmap(self, weight_bytes):
-        """Read a weight map's values."""
-        chunk_len = len(weight_bytes)
-        offset = 2
-        name, name_len = self.read_lwostring(weight_bytes[offset:])
-        offset += name_len
-        weights = []
-
-        while offset < chunk_len:
-            pnt_id, pnt_id_len = self.read_vx(weight_bytes[offset:offset + 4])
-            offset += pnt_id_len
-            (value,) = struct.unpack(">f", weight_bytes[offset:offset + 4])
-            offset += 4
-            weights.append([pnt_id, value])
-
-        self.layers[-1].wmaps[name] = weights
-        
-    def read_colmap(self, col_bytes):
-        """Read the RGB or RGBA color map."""
-        chunk_len = len(col_bytes)
-        (dia,) = struct.unpack(">H", col_bytes[0:2])
-        offset = 2
-        name, name_len = self.read_lwostring(col_bytes[offset:])
-        offset += name_len
-        colors = {}
-    
-        if dia == 3:
-            while offset < chunk_len:
-                pnt_id, pnt_id_len = self.read_vx(col_bytes[offset:offset + 4])
-                offset += pnt_id_len
-                col = struct.unpack(">fff", col_bytes[offset:offset + 12])
-                offset += 12
-                colors[pnt_id] = (col[0], col[1], col[2])
-        elif dia == 4:
-            while offset < chunk_len:
-                pnt_id, pnt_id_len = self.read_vx(col_bytes[offset:offset + 4])
-                offset += pnt_id_len
-                col = struct.unpack(">ffff", col_bytes[offset:offset + 16])
-                offset += 16
-                colors[pnt_id] = (col[0], col[1], col[2])
-    
-        if name in self.layers[-1].colmaps:
-            if "PointMap" in self.layers[-1].colmaps[name]:
-                self.layers[-1].colmaps[name]["PointMap"].update(colors)
-            else:
-                self.layers[-1].colmaps[name]["PointMap"] = colors
-        else:
-            self.layers[-1].colmaps[name] = dict(PointMap=colors)
-    
-    
-    def read_normmap(self, norm_bytes):
-        """Read vertex normal maps."""
-        chunk_len = len(norm_bytes)
-        offset = 2
-        name, name_len = self.read_lwostring(norm_bytes[offset:])
-        offset += name_len
-        vnorms = {}
-    
-        while offset < chunk_len:
-            pnt_id, pnt_id_len = self.read_vx(norm_bytes[offset:offset + 4])
-            offset += pnt_id_len
-            norm = struct.unpack(">fff", norm_bytes[offset:offset + 12])
-            offset += 12
-            vnorms[pnt_id] = [norm[0], norm[2], norm[1]]
-    
-        self.layers[-1].vnorms = vnorms
-    
-    def read_color_vmad(self, col_bytes, last_pols_count):
-        """Read the Discontinuous (per-polygon) RGB values."""
-        chunk_len = len(col_bytes)
-        (dia,) = struct.unpack(">H", col_bytes[0:2])
-        offset = 2
-        name, name_len = self.read_lwostring(col_bytes[offset:])
-        offset += name_len
-        colors = {}
-        abs_pid = len(self.layers[-1].pols) - last_pols_count
-    
-        if dia == 3:
-            while offset < chunk_len:
-                pnt_id, pnt_id_len = self.read_vx(col_bytes[offset:offset + 4])
-                offset += pnt_id_len
-                pol_id, pol_id_len = self.read_vx(col_bytes[offset:offset + 4])
-                offset += pol_id_len
-    
-                # The PolyID in a VMAD can be relative, this offsets it.
-                pol_id += abs_pid
-                col = struct.unpack(">fff", col_bytes[offset:offset + 12])
-                offset += 12
-                if pol_id in colors:
-                    colors[pol_id][pnt_id] = (col[0], col[1], col[2])
-                else:
-                    colors[pol_id] = dict({pnt_id: (col[0], col[1], col[2])})
-        elif dia == 4:
-            while offset < chunk_len:
-                pnt_id, pnt_id_len = self.read_vx(col_bytes[offset:offset + 4])
-                offset += pnt_id_len
-                pol_id, pol_id_len = self.read_vx(col_bytes[offset:offset + 4])
-                offset += pol_id_len
-    
-                pol_id += abs_pid
-                col = struct.unpack(">ffff", col_bytes[offset:offset + 16])
-                offset += 16
-                if pol_id in colors:
-                    colors[pol_id][pnt_id] = (col[0], col[1], col[2])
-                else:
-                    colors[pol_id] = dict({pnt_id: (col[0], col[1], col[2])})
-    
-        if name in self.layers[-1].colmaps:
-            if "FaceMap" in self.layers[-1].colmaps[name]:
-                self.layers[-1].colmaps[name]["FaceMap"].update(colors)
-            else:
-                self.layers[-1].colmaps[name]["FaceMap"] = colors
-        else:
-            self.layers[-1].colmaps[name] = dict(FaceMap=colors)
-    
-    
-    def read_uvmap(self, uv_bytes):
-        """Read the simple UV coord values."""
-        chunk_len = len(uv_bytes)
-        offset = 2
-        name, name_len = self.read_lwostring(uv_bytes[offset:])
-        offset += name_len
-        uv_coords = {}
-    
-        while offset < chunk_len:
-            pnt_id, pnt_id_len = self.read_vx(uv_bytes[offset:offset + 4])
-            offset += pnt_id_len
-            pos = struct.unpack(">ff", uv_bytes[offset:offset + 8])
-            offset += 8
-            uv_coords[pnt_id] = (pos[0], pos[1])
-    
-        if name in self.layers[-1].uvmaps_vmap:
-            if "PointMap" in self.layers[-1].uvmaps_vmap[name]:
-                self.layers[-1].uvmaps_vmap[name]["PointMap"].update(uv_coords)
-            else:
-                self.layers[-1].uvmaps_vmap[name]["PointMap"] = uv_coords
-        else:
-            self.layers[-1].uvmaps_vmap[name] = dict(PointMap=uv_coords)
-    
-    
-    def read_uv_vmad(self, uv_bytes, last_pols_count):
-        """Read the Discontinuous (per-polygon) uv values."""
-        chunk_len = len(uv_bytes)
-        offset = 2
-        name, name_len = self.read_lwostring(uv_bytes[offset:])
-        offset += name_len
-        uv_coords = {}
-        abs_pid = len(self.layers[-1].pols) - last_pols_count
-    
-        while offset < chunk_len:
-            pnt_id, pnt_id_len = self.read_vx(uv_bytes[offset:offset + 4])
-            offset += pnt_id_len
-            pol_id, pol_id_len = self.read_vx(uv_bytes[offset:offset + 4])
-            offset += pol_id_len
-    
-            pol_id += abs_pid
-            pos = struct.unpack(">ff", uv_bytes[offset:offset + 8])
-            offset += 8
-            if pol_id in uv_coords:
-                uv_coords[pol_id][pnt_id] = (pos[0], pos[1])
-            else:
-                uv_coords[pol_id] = dict({pnt_id: (pos[0], pos[1])})
-    
-        if name in self.layers[-1].uvmaps_vmad:
-            if "FaceMap" in self.layers[-1].uvmaps_vmad[name]:
-                self.layers[-1].uvmaps_vmad[name]["FaceMap"].update(uv_coords)
-            else:
-                self.layers[-1].uvmaps_vmad[name]["FaceMap"] = uv_coords
-        else:
-            self.layers[-1].uvmaps_vmad[name] = dict(FaceMap=uv_coords)
-    
-    
-    def read_weight_vmad(self, ew_bytes):
-        """Read the VMAD Weight values."""
-        chunk_len = len(ew_bytes)
-        offset = 2
-        name, name_len = self.read_lwostring(ew_bytes[offset:])
-        if name != "Edge Weight":
-            return  # We just want the Catmull-Clark edge weights
-    
-        offset += name_len
-        # Some info: LW stores a face's points in a clock-wize order (with the
-        # normal pointing at you). This gives edges a 'direction' which is used
-        # when it comes to storing CC edge weight values. The weight is given
-        # to the point preceding the edge that the weight belongs to.
-        while offset < chunk_len:
-            pnt_id, pnt_id_len = self.read_vx(ew_bytes[offset:offset + 4])
-            offset += pnt_id_len
-            pol_id, pol_id_len = self.read_vx(ew_bytes[offset:offset + 4])
-            offset += pol_id_len
-            (weight,) = struct.unpack(">f", ew_bytes[offset:offset + 4])
-            offset += 4
-    
-            face_pnts = self.layers[-1].pols[pol_id]
-            try:
-                # Find the point's location in the polygon's point list
-                first_idx = face_pnts.index(pnt_id)
-            except:
-                continue
-    
-            # Then get the next point in the list, or wrap around to the first
-            if first_idx == len(face_pnts) - 1:
-                second_pnt = face_pnts[0]
-            else:
-                second_pnt = face_pnts[first_idx + 1]
-    
-            self.layers[-1].edge_weights["{0} {1}".format(second_pnt, pnt_id)] = weight
-    
-    
-    def read_normal_vmad(self, norm_bytes):
-        """Read the VMAD Split Vertex Normals"""
-        chunk_len = len(norm_bytes)
-        offset = 2
-        name, name_len = self.read_lwostring(norm_bytes[offset:])
-        lnorms = {}
-        offset += name_len
-    
-        while offset < chunk_len:
-            pnt_id, pnt_id_len = self.read_vx(norm_bytes[offset:offset + 4])
-            offset += pnt_id_len
-            pol_id, pol_id_len = self.read_vx(norm_bytes[offset:offset + 4])
-            offset += pol_id_len
-            norm = struct.unpack(">fff", norm_bytes[offset:offset + 12])
-            offset += 12
-            if not (pol_id in lnorms.keys()):
-                lnorms[pol_id] = []
-            lnorms[pol_id].append([pnt_id, norm[0], norm[2], norm[1]])
-    
-        print(f"LENGTH {len(lnorms.keys())}")
-        self.layers[-1].lnorms = lnorms
-
-    def read_bones(self, bone_bytes):
-        """Read the layer's skelegons."""
-        # print(f"\tReading Layer ({object_layers[-1].name}) Bones")
-        offset = 0
-        bones_count = len(bone_bytes)
-    
-        while offset < bones_count:
-            (pnts_count,) = struct.unpack(">H", bone_bytes[offset:offset + 2])
-            offset += 2
-            all_bone_pnts = []
-            for j in range(pnts_count):
-                bone_pnt, data_size = self.read_vx(bone_bytes[offset:offset + 4])
-                offset += data_size
-                all_bone_pnts.append(bone_pnt)
-    
-            self.layers[-1].bones.append(all_bone_pnts)
-    
-    
-    def read_bone_tags(self, tag_bytes, type):
-        """Read the bone name or roll tags."""
-        offset = 0
-        chunk_len = len(tag_bytes)
-    
-        if type == "BONE":
-            bone_dict = self.layers[-1].bone_names
-        elif type == "BNUP":
-            bone_dict = self.layers[-1].bone_rolls
-        else:
-            return
-    
-        while offset < chunk_len:
-            pid, pid_len = self.read_vx(tag_bytes[offset:offset + 4])
-            offset += pid_len
-            (tid,) = struct.unpack(">H", tag_bytes[offset:offset + 2])
-            offset += 2
-            bone_dict[pid] = self.tags[tid]
-    
-    
-    def read_surf_tags(self, tag_bytes, last_pols_count):
-        """Read the list of PolyIDs and tag indexes."""
-        print(f"\tReading Layer ({self.layers[-1].name}) Surface Assignments")
-        offset = 0
-        chunk_len = len(tag_bytes)
-    
-        # Read in the PolyID/Surface Index pairs.
-        abs_pid = len(self.layers[-1].pols) - last_pols_count
-        while offset < chunk_len:
-            pid, pid_len = self.read_vx(tag_bytes[offset:offset + 4])
-            offset += pid_len
-            (sid,) = struct.unpack(">H", tag_bytes[offset:offset + 2])
-            offset += 2
-            if sid not in self.layers[-1].surf_tags:
-                self.layers[-1].surf_tags[sid] = []
-            self.layers[-1].surf_tags[sid].append(pid + abs_pid)
-
-    def read_layr(self, layr_bytes):
-        """Read the object's layer data."""
-        new_layr = _obj_layer()
-        new_layr.index, flags = struct.unpack(">HH", layr_bytes[0:4])
-    
-        if flags > 0 :
-            new_layr.hidden = True
-            #raise Exception
-#         if flags > 0 and not load_hidden:
-#             return False
-    
-        print("Reading Object Layer")
-        offset = 4
-        pivot = struct.unpack(">fff", layr_bytes[offset:offset + 12])
-        # Swap Y and Z to match Blender's pitch.
-        new_layr.pivot = [pivot[0], pivot[2], pivot[1]]
-        offset += 12
-        layr_name, name_len = self.read_lwostring(layr_bytes[offset:])
-        offset += name_len
-    
-        if layr_name:
-            new_layr.name = layr_name
-        else:
-            new_layr.name = "Layer %d" % (new_layr.index + 1)
-    
-        if len(layr_bytes) == offset + 2:
-            (new_layr.parent_index,) = struct.unpack(">h", layr_bytes[offset:offset + 2])
-    
-        self.layers.append(new_layr)
-        return True
-
-    def read_pols(self, pol_bytes):
-        """Read the layer's polygons, each one is just a list of point indexes."""
-        print(f"\tReading Layer ({self.layers[-1].name}) Polygons")
-        offset = 0
-        pols_count = len(pol_bytes)
-        old_pols_count = len(self.layers[-1].pols)
-    
-        while offset < pols_count:
-            (pnts_count,) = struct.unpack(">H", pol_bytes[offset:offset + 2])
-            offset += 2
-            all_face_pnts =[]
-            for j in range(pnts_count):
-                face_pnt, data_size = self.read_vx(pol_bytes[offset:offset + 4])
-                offset += data_size
-                all_face_pnts.append(face_pnt)
-            all_face_pnts.reverse()  # correct normals
-    
-            self.layers[-1].pols.append(all_face_pnts)
-    
-        return len(self.layers[-1].pols) - old_pols_count
-    
-    
-    def read_clip(self, clip_bytes):
-        """Read texture clip path"""
-        c_id = struct.unpack(">L", clip_bytes[0:4])[0]
-        orig_path, path_len = self.read_lwostring(clip_bytes[10:])
-        self.clips[c_id] = {"orig_path": orig_path, "new_path": None}
-
-
-    def read_surf(self, surf_bytes):
-        """Read the object's surface data."""
-        if len(self.surfs) == 0:
-            print("Reading Object Surfaces")
-    
-        surf = _obj_surf()
-        name, name_len = self.read_lwostring(surf_bytes)
-        if len(name) != 0:
-            surf.name = name
-    
-        # We have to read this, but we won't use it...yet.
-        s_name, s_name_len = self.read_lwostring(surf_bytes[name_len:])
-        offset = name_len + s_name_len
-        block_size = len(surf_bytes)
-        while offset < block_size:
-            (subchunk_name,) = struct.unpack("4s", surf_bytes[offset:offset + 4])
-            offset += 4
-            (subchunk_len,) = struct.unpack(">H", surf_bytes[offset:offset + 2])
-            offset += 2
-    
-            # Now test which subchunk it is.
-            if subchunk_name == b"COLR":
-                surf.colr = struct.unpack(">fff", surf_bytes[offset:offset + 12])
-                # Don't bother with any envelopes for now.
-    
-            elif subchunk_name == b"DIFF":
-                (surf.diff,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
-    
-            elif subchunk_name == b"LUMI":
-                (surf.lumi,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
-    
-            elif subchunk_name == b"SPEC":
-                (surf.spec,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
-    
-            elif subchunk_name == b"REFL":
-                (surf.refl,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
-    
-            elif subchunk_name == b"RBLR":
-                (surf.rblr,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
-    
-            elif subchunk_name == b"TRAN":
-                (surf.tran,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
-    
-            elif subchunk_name == b"RIND":
-                (surf.rind,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
-    
-            elif subchunk_name == b"TBLR":
-                (surf.tblr,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
-    
-            elif subchunk_name == b"TRNL":
-                (surf.trnl,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
-    
-            elif subchunk_name == b"GLOS":
-                (surf.glos,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
-    
-            elif subchunk_name == b"SHRP":
-                (surf.shrp,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
-    
-            elif subchunk_name == b"SMAN":
-                (s_angle,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
-                # print(s_angle)
-                if s_angle > 0.0:
-                    surf.smooth = True
-            elif subchunk_name == b"BUMP":
-                (surf.bump,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
-    
-            elif subchunk_name == b"BLOK":
-                (block_type,) = struct.unpack("4s", surf_bytes[offset:offset + 4])
-                texture = None
-                debug = False
-                if block_type == b"IMAP" or block_type == b"PROC" or block_type == b"SHDR":
-                    texture = self.read_texture(surf_bytes, offset, subchunk_len, debug=debug)
-                else:
-                    print(f"Unimplemented texture type: {block_type}")
-                
-                if None is not texture:
-                    texture.type = block_type.decode("ascii")
-                    if texture.channel not in surf.textures.keys():
-                        surf.textures[texture.channel] = []
-                    surf.textures[texture.channel].append(texture)
-            
-            elif subchunk_name == b"RFOP":
-                (surf.rfop, _) = struct.unpack(">HH", surf_bytes[offset:offset + 4])
-            elif subchunk_name == b"TROP":
-                (surf.trop, _) = struct.unpack(">HH", surf_bytes[offset:offset + 4])
-            elif subchunk_name == b"SIDE":
-                (surf.side, ) = struct.unpack(">H", surf_bytes[offset:offset + 2])
-                self.unimplemented(subchunk_name)
-            elif subchunk_name == b"VERS":
-                self.unimplemented(subchunk_name)
-            elif subchunk_name == b"NODS":
-                self.unimplemented(subchunk_name)
-            elif subchunk_name == b"GVAL":
-                self.unimplemented(subchunk_name)
-            elif subchunk_name == b"NVSK":
-                self.unimplemented(subchunk_name)
-            elif subchunk_name == b"CLRF":
-                self.unimplemented(subchunk_name)
-            elif subchunk_name == b"CLRH":
-                self.unimplemented(subchunk_name)
-            elif subchunk_name == b"ADTR":
-                self.unimplemented(subchunk_name)
-            elif subchunk_name == b"RIMG":
-                self.unimplemented(subchunk_name)
-            elif subchunk_name == b"ALPH":
-                self.unimplemented(subchunk_name)
-            elif subchunk_name == b"BUF1":
-                self.unimplemented(subchunk_name)
-            elif subchunk_name == b"BUF2":
-                self.unimplemented(subchunk_name)
-            elif subchunk_name == b"BUF3":
-                self.unimplemented(subchunk_name)
-            elif subchunk_name == b"BUF4":
-                self.unimplemented(subchunk_name)
-            else:
-                print(f"Unimplemented SubBlock: {subchunk_name}")
-    
-            offset += subchunk_len
-    
-        self.surfs[surf.name] = surf
-    
-    def read_texture(self, surf_bytes, offset, subchunk_len, debug=False):
-        texture = _surf_texture()
-        ordinal, ord_len = self.read_lwostring(surf_bytes[offset + 4:])
-        suboffset = 6 + ord_len
-        while suboffset < subchunk_len:
-            (subsubchunk_name,) = struct.unpack(
-                "4s", surf_bytes[offset + suboffset:offset + suboffset + 4]
-            )
-            suboffset += 4
-            (subsubchunk_len,) = struct.unpack(
-                ">H", surf_bytes[offset + suboffset:offset + suboffset + 2]
-            )
-            suboffset += 2
-            #print(subsubchunk_name, suboffset, subchunk_len)
-            if subsubchunk_name == b"CHAN":
-                (texture.channel,) = struct.unpack(
-                    "4s", surf_bytes[offset + suboffset:offset + suboffset + 4],
-                )
-                texture.channel = texture.channel.decode("ascii")
-            elif subsubchunk_name == b"OPAC":
-                (texture.opactype,) = struct.unpack(
-                    ">H", surf_bytes[offset + suboffset:offset + suboffset + 2],
-                )
-                (texture.opac,) = struct.unpack(
-                    ">f", surf_bytes[offset + suboffset + 2: offset + suboffset + 6],
-                )
-                # print("opactype",opactype)
-            elif subsubchunk_name == b"ENAB":
-                (texture.enab,) = struct.unpack(
-                    ">H", surf_bytes[offset + suboffset:offset + suboffset + 2],
-                )
-            elif subsubchunk_name == b"IMAG":
-                (texture.clipid,) = struct.unpack(
-                    ">H", surf_bytes[offset + suboffset:offset + suboffset + 2],
-                )
-            elif subsubchunk_name == b"PROJ":
-                (texture.projection,) = struct.unpack(
-                    ">H", surf_bytes[offset + suboffset:offset + suboffset + 2],
-                )
-            elif subsubchunk_name == b"VMAP":
-                texture.uvname, name_len = self.read_lwostring(surf_bytes[offset + suboffset:])
-                # print(f"VMAP {texture.uvname} {name_len}")
-            elif subsubchunk_name == b"FUNC":  # This is the procedural
-                texture.func, name_len = self.read_lwostring(surf_bytes[offset + suboffset:])
-            elif subsubchunk_name == b"NEGA":
-                (texture.nega,) = struct.unpack(
-                    ">H", surf_bytes[offset + suboffset:offset + suboffset + 2],
-                )
-            elif subsubchunk_name == b"TMAP":
-                self.unimplemented(subsubchunk_name)
-            elif subsubchunk_name == b"AXIS":
-                self.unimplemented(subsubchunk_name)
-                xx,= struct.unpack(
-                    ">H",
-                    surf_bytes[offset + suboffset:offset + suboffset + 2],
-                )
-                #print(xx)
-            elif subsubchunk_name == b"WRAP":
-                self.unimplemented(subsubchunk_name)
-            elif subsubchunk_name == b"WRPW":
-                self.unimplemented(subsubchunk_name)
-            elif subsubchunk_name == b"WRPH":
-                self.unimplemented(subsubchunk_name)
-            elif subsubchunk_name == b"AAST":
-                self.unimplemented(subsubchunk_name)
-            elif subsubchunk_name == b"PIXB":
-                self.unimplemented(subsubchunk_name)
-            elif subsubchunk_name == b"VALU":
-                self.unimplemented(subsubchunk_name)
-            elif subsubchunk_name == b"TAMP":
-                self.unimplemented(subsubchunk_name)
-            elif subsubchunk_name == b"STCK":
-                self.unimplemented(subsubchunk_name)
-            else:
-                print(f"Unimplemented SubSubBlock: {subsubchunk_name}")
-            suboffset += subsubchunk_len
-        return texture
-
-    def read_lwo(self, f):
-        """Read version 2 file, LW 6+."""
-        self.last_pols_count = 0
-        self.just_read_bones = False
-        print(f"LWO v2 Format")
-
-        while True:
-            try:
-                rootchunk = chunk.Chunk(f)
-            except EOFError:
-                break
-
-            if rootchunk.chunkname == b"TAGS":
-                self.read_tags(rootchunk.read())
-            elif rootchunk.chunkname == b"LAYR":
-                self.read_layr(rootchunk.read())
-            elif rootchunk.chunkname == b"PNTS":
-                self.read_pnts(rootchunk.read())
-            elif rootchunk.chunkname == b"VMAP":
-                vmap_type = rootchunk.read(4)
-
-                if vmap_type == b"WGHT":
-                    self.read_weightmap(rootchunk.read())
-                elif vmap_type == b"MORF":
-                    self.read_morph(rootchunk.read(), False)
-                elif vmap_type == b"SPOT":
-                    self.read_morph(rootchunk.read(), True)
-                elif vmap_type == b"TXUV":
-                    self.read_uvmap(rootchunk.read())
-                elif vmap_type == b"RGB " or vmap_type == b"RGBA":
-                    self.read_colmap(rootchunk.read())
-                elif vmap_type == b"NORM":
-                    self.read_normmap(rootchunk.read())
-                elif vmap_type == b"PICK":
-                    rootchunk.skip()  # SKIPPING
-                else:
-                    print(f"Skipping vmap_type: {vmap_type}")
-                    rootchunk.skip()
-
-            elif rootchunk.chunkname == b"VMAD":
-                vmad_type = rootchunk.read(4)
-
-                if vmad_type == b"TXUV":
-                    self.read_uv_vmad(rootchunk.read(), self.last_pols_count)
-                elif vmad_type == b"RGB " or vmad_type == b"RGBA":
-                    self.read_color_vmad(rootchunk.read(), self.last_pols_count)
-                elif vmad_type == b"WGHT":
-                    # We only read the Edge Weight map if it's there.
-                    self.read_weight_vmad(rootchunk.read())
-                elif vmad_type == b"NORM":
-                    self.read_normal_vmad(rootchunk.read())
-                else:
-                    print(f"Skipping vmad_type: {vmad_type}")
-                    rootchunk.skip()
-
-            elif rootchunk.chunkname == b"POLS":
-                face_type = rootchunk.read(4)
-                self.just_read_bones = False
-                # PTCH is LW's Subpatches, SUBD is CatmullClark.
-                if (face_type == b"FACE" or face_type == b"PTCH" or face_type == b"SUBD"):
-                    self.last_pols_count = self.read_pols(rootchunk.read())
-                    if face_type != b"FACE":
-                        self.layers[-1].has_subds = True
-                elif face_type == b"BONE" and self.handle_layer:
-                    self.read_bones(rootchunk.read())
-                    self.just_read_bones = True
-                else:
-                    print(f"Skipping face_type: {face_type}")
-                    rootchunk.skip()
-
-            elif rootchunk.chunkname == b"PTAG":
-                (tag_type,) = struct.unpack("4s", rootchunk.read(4))
-                if tag_type == b"SURF" and not self.just_read_bones:
-                    # Ignore the surface data if we just read a bones chunk.
-                    self.read_surf_tags(rootchunk.read(), self.last_pols_count)
-                elif tag_type == b"BNUP":
-                    self.read_bone_tags(rootchunk.read(), "BNUP")
-                    raise
-                elif tag_type == b"BONE":
-                    self.read_bone_tags(rootchunk.read(), "BONE")
-                    raise
-                elif tag_type == b"PART":
-                    rootchunk.skip()  # SKIPPING
-                elif tag_type == b"COLR":
-                    rootchunk.skip()  # SKIPPING
-                else:
-                    print(f"Skipping tag: {tag_type}")
-                    rootchunk.skip()
-            elif rootchunk.chunkname == b"SURF":
-                self.read_surf(rootchunk.read())
-            elif rootchunk.chunkname == b"CLIP":
-                self.read_clip(rootchunk.read())
-            elif rootchunk.chunkname == b"BBOX":
-                rootchunk.skip()  # SKIPPING
-            elif rootchunk.chunkname == b"VMPA":
-                rootchunk.skip()  # SKIPPING
-            elif rootchunk.chunkname == b"PNTS":
-                rootchunk.skip()  # SKIPPING
-            elif rootchunk.chunkname == b"POLS":
-                rootchunk.skip()  # SKIPPING
-            elif rootchunk.chunkname == b"PTAG":
-                rootchunk.skip()  # SKIPPING
-            else:
-                print(f"Skipping Chunk: {rootchunk.chunkname}")
-                rootchunk.skip()
-
-
-class LWO(LWO2):
-
-    def __init__(self):
-        super().__init__()
-        self.type = "LWO"
-
-    def read_pols(self, pol_bytes):
-        """
-        Read the polygons, each one is just a list of point indexes.
-        But it also includes the surface index.
-        """
-        print(f"\tReading Layer ({self.layers[-1].name}) Polygons")
-        offset = 0
-        chunk_len = len(pol_bytes)
-        old_pols_count = len(self.layers[-1].pols)
-        poly = 0
-    
-        while offset < chunk_len:
-            (pnts_count,) = struct.unpack(">H", pol_bytes[offset:offset + 2])
-            offset += 2
-            all_face_pnts = []
-            for j in range(pnts_count):
-                (face_pnt,) = struct.unpack(">H", pol_bytes[offset:offset + 2])
-                offset += 2
-                all_face_pnts.append(face_pnt)
-            all_face_pnts.reverse()
-    
-            self.layers[-1].pols.append(all_face_pnts)
-            (sid,) = struct.unpack(">h", pol_bytes[offset:offset + 2])
-            offset += 2
-            sid = abs(sid) - 1
-            if sid not in self.layers[-1].surf_tags:
-                self.layers[-1].surf_tags[sid] = []
-            self.layers[-1].surf_tags[sid].append(poly)
-            poly += 1
-    
-        return len(self.layers[-1].pols) - old_pols_count
-
-
-    def read_layr(self, layr_bytes):
-        """Read the object's layer data."""
-        # XXX: Need to check what these two exactly mean for a LWOB/LWLO file.
-        new_layr = _obj_layer()
-        new_layr.index, flags = struct.unpack(">HH", layr_bytes[0:4])
-
-        print("Reading Object Layer")
-        offset = 4
-        layr_name, name_len = self.read_lwostring(layr_bytes[offset:])
-        offset += name_len
-
-        if name_len > 2 and layr_name != "noname":
-            new_layr.name = layr_name
-        else:
-            # new_layr.name = f"Layer {new_layr.index}"
-            new_layr.name = "Layer {}".format(new_layr.index)
-
-        self.layers.append(new_layr)
-    
-    def read_surf(self, surf_bytes, dirpath=None):
-        """Read the object's surface data."""
-        if len(self.surfs) == 0:
-            print("Reading Object Surfaces")
-    
-        surf = _obj_surf()
-        name, name_len = self.read_lwostring(surf_bytes)
-        if len(name) != 0:
-            surf.name = name
-    
-        offset = name_len
-        chunk_len = len(surf_bytes)
-        while offset < chunk_len:
-            (subchunk_name,) = struct.unpack("4s", surf_bytes[offset:offset + 4])
-            offset += 4
-            (subchunk_len,) = struct.unpack(">H", surf_bytes[offset:offset + 2])
-            offset += 2
-    
-            # Now test which subchunk it is.
-            if subchunk_name == b"COLR":
-                color = struct.unpack(">BBBB", surf_bytes[offset:offset + 4])
-                surf.colr = [color[0] / 255.0, color[1] / 255.0, color[2] / 255.0]
-    
-            elif subchunk_name == b"DIFF":
-                (surf.diff,) = struct.unpack(">h", surf_bytes[offset:offset + 2])
-                surf.diff /= 256.0  # Yes, 256 not 255.
-    
-            elif subchunk_name == b"LUMI":
-                (surf.lumi,) = struct.unpack(">h", surf_bytes[offset:offset + 2])
-                surf.lumi /= 256.0
-    
-            elif subchunk_name == b"SPEC":
-                (surf.spec,) = struct.unpack(">h", surf_bytes[offset:offset + 2])
-                surf.spec /= 256.0
-    
-            elif subchunk_name == b"REFL":
-                (surf.refl,) = struct.unpack(">h", surf_bytes[offset:offset + 2])
-                surf.refl /= 256.0
-    
-            elif subchunk_name == b"TRAN":
-                (surf.tran,) = struct.unpack(">h", surf_bytes[offset:offset + 2])
-                surf.tran /= 256.0
-    
-            elif subchunk_name == b"RIND":
-                (surf.rind,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
-    
-            elif subchunk_name == b"GLOS":
-                (surf.glos,) = struct.unpack(">h", surf_bytes[offset:offset + 2])
-    
-            elif subchunk_name == b"SMAN":
-                (s_angle,) = struct.unpack(">f", surf_bytes[offset:offset + 4])
-                if s_angle > 0.0:
-                    surf.smooth = True
-    
-            elif subchunk_name in [b"CTEX", b"DTEX", b"STEX", b"RTEX", b"TTEX", b"BTEX"]:
-                texture = None
-    
-            elif subchunk_name == b"TIMG":
-                path, path_len = self.read_lwostring(surf_bytes[offset:])
-                if path == "(none)":
-                    continue
-                texture = _surf_texture_5()
-                path = dirpath + os.sep + path.replace("//", "")
-                texture.path = path
-                surf.textures_5.append(texture)
-    
-            elif subchunk_name == b"TFLG":
-                if texture:
-                    (mapping,) = struct.unpack(">h", surf_bytes[offset:offset + 2])
-                    if mapping & 1:
-                        texture.X = True
-                    elif mapping & 2:
-                        texture.Y = True
-                    elif mapping & 4:
-                        texture.Z = True
-            elif subchunk_name == b"FLAG":
-                pass  # SKIPPING
-            elif subchunk_name == b"VLUM":
-                pass  # SKIPPING
-            elif subchunk_name == b"VDIF":
-                pass  # SKIPPING
-            elif subchunk_name == b"VSPC":
-                pass  # SKIPPING
-            elif subchunk_name == b"VRFL":
-                pass  # SKIPPING
-            elif subchunk_name == b"VTRN":
-                pass  # SKIPPING
-            elif subchunk_name == b"RFLT":
-                pass  # SKIPPING
-            elif subchunk_name == b"ALPH":
-                pass  # SKIPPING
-            else:
-                print(f"Unimplemented SubBlock: {subchunk_name}")
-    
-            offset += subchunk_len
-    
-        self.surfs[surf.name] = surf
-
-    def read_lwo(self, f):
-        """Read version 1 file, LW < 6."""
-        self.last_pols_count = 0
-        #print(f"LWO v1 Format")
-
-        while True:
-            try:
-                rootchunk = chunk.Chunk(f)
-            except EOFError:
-                break
-
-            if rootchunk.chunkname == b"SRFS":
-                self.read_tags(rootchunk.read())
-            elif rootchunk.chunkname == b"LAYR":
-                self.read_layr(rootchunk.read())
-            elif rootchunk.chunkname == b"PNTS":
-                if len(self.layers) == 0:
-                    # LWOB files have no LAYR chunk to set this up.
-                    nlayer = _obj_layer()
-                    nlayer.name = "Layer 1"
-                    self.layers.append(nlayer)
-                self.read_pnts(rootchunk.read())
-            elif rootchunk.chunkname == b"POLS":
-                self.last_pols_count = self.read_pols(rootchunk.read())
-            elif rootchunk.chunkname == b"PCHS":
-                self.last_pols_count = self.read_pols(rootchunk.read())
-                self.layers[-1].has_subds = True
-            elif rootchunk.chunkname == b"PTAG":
-                (tag_type,) = struct.unpack("4s", rootchunk.read(4))
-                if tag_type == b"SURF":
-                    raise Exception("Missing commented out function")
-                #                     read_surf_tags_5(
-                #                         rootchunk.read(), self.layers, self.last_pols_count
-                #                     )
-                else:
-                    rootchunk.skip()
-            elif rootchunk.chunkname == b"SURF":
-                self.read_surf(rootchunk.read())
-            else:
-                # For Debugging \/.
-                print(f"Skipping Chunk: {rootchunk.chunkname}")
-                rootchunk.skip()
-
-class LWO3(object):
-
-    def __init__(self):
-        super().__init__()
-        self.type = "LWO3"
-
-
-class lwoObject(object):
-    def __init__(self, filename):
+    def __init__(self, filename, loglevel=logging.INFO):
         self.name, self.ext = os.path.splitext(os.path.basename(filename))
         self.filename = os.path.abspath(filename)
-        
-        self.lwo = None
-        
-        self.images = []
-        self.search_paths = []
-        self.allow_missing_images = False
-        self.absfilepath = True
-        
-        self.load_hidden = False
+        self.dirpath = os.path.dirname(self.filename)
 
+        self.allow_images_missing = False
+        self.absfilepath = True
+        self.cwd = os.getcwd()
+        self.loglevel = loglevel
+        
+        self.l = LWOLogger("WRAP", self.loglevel)
+        self.ch = chd()
+        
     @property
     def layers(self):
-        if None is self.lwo:
-            return []
-        else:
-            layers = []
-            for l in self.lwo.layers:
-                if not l.hidden or self.load_hidden:
-                    layers.append(l)
-            return layers
+        return self.lwo.layers
         
     @property
     def surfs(self):
-        if None is self.lwo:
-            return {}
-        else:
-            return self.lwo.surfs
+        return self.lwo.surfs
+        
+    @property
+    def materials(self):
+        return self.lwo.materials
         
     @property
     def tags(self):
-        if None is self.lwo:
-            return []
-        else:
-            return self.lwo.tags
-        
+        return self.lwo.tags
+
     @property
     def clips(self):
-        if None is self.lwo:
-            return {}
-        else:
-            return self.lwo.clips
+        return self.lwo.clips
+
+    @property
+    def images(self):
+        return self.lwo.images
+        
         
     def __eq__(self, x):
         __slots__ = (
@@ -1225,59 +94,22 @@ class lwoObject(object):
             a = getattr(self, k)
             b = getattr(x, k)
             if not a == b:
-#                 print(f"{k} mismatch:")
-#                 print(f"\t{a} != {b}")
+                #                 print(f"{k} mismatch:")
+                #                 print(f"\t{a} != {b}")
                 return False
         return True
-    
 
-    def parse_lwo(self):
+    def read(self, ch=None):
+        if not ch is None:
+            self.ch = ch
+
+        self.lwo = LWODetect(self.filename, self.loglevel)
+        self.lwo.ch = self.ch
+        self.lwo.read_lwo()
         
-        p = lwoParser(self.filename)
-        
-        exit()
 
-
-    def read(
-        self, ADD_SUBD_MOD=True, LOAD_HIDDEN=False, SKEL_TO_ARM=True,
-    ):
-        self.add_subd_mod = ADD_SUBD_MOD
-        self.load_hidden = LOAD_HIDDEN
-        self.skel_to_arm = SKEL_TO_ARM
-
-        
-        #self.parse_lwo()
-       
-        self.f = open(self.filename, "rb")
-        try:
-            header, chunk_size, chunk_name = struct.unpack(">4s1L4s", self.f.read(12))
-        except:
-            print(f"Error parsing file header! Filename {self.filename}")
-            self.f.close()
-            return
-
-        print(f"Importing LWO: {self.filename}")
-        if chunk_name == b"LWO2":
-            self.lwo = LWO2()
-        elif chunk_name == b"LWOB" or chunk_name == b"LWLO":
-            # LWOB and LWLO are the old format, LWLO is a layered object.
-            self.lwo = LWO()
-        else:
-            print("Not a supported file type!")
-            self.f.close()
-            return
-        print(f"{self.lwo.type}")
-        
-        self.lwo.read_lwo(self.f)
-        
-        self.f.close()
-        del self.f
-        
-        print(f"Validating LWO: {self.filename}")
-        self.validate_lwo()
-
-    def pprint(self):
-
+    @property
+    def elements(self):
         layers = []
         for x in self.layers:
             layers.append(x.dict)
@@ -1285,64 +117,73 @@ class lwoObject(object):
         for x in self.surfs:
             surfs[x] = self.surfs[x].dict
         d = OrderedDict()
-        d["layers"] = (layers,)
-        d["surfs"] = (surfs,)
-        d["tags"] = (self.tags,)
-        d["clips"] = (self.clips,)
-        d["images"] = (self.images,)
-        pprint(d)
+        d["layers"] = layers
+        d["surfs"] = surfs
+        d["tags"] = self.tags
+        d["clips"] = self.clips
+        d["images"] = self.images
+        return d
+    
+    def pprint(self):
+        pprint(self.elements)
 
+    @property
+    def search_paths(self):
+        paths = [self.dirpath]
+        for s in self.ch.search_paths:
+            if not re.search("^/", s) and not re.search("^.:", s):
+                x = os.path.join(self.dirpath, s)
+                y = os.path.abspath(x)
+                paths.append(y)
+            else:
+                paths.append(s)
+        return paths
+    
     def resolve_clips(self):
+        files = []
+        for search_path in self.search_paths:
+            files.extend(glob(f"{search_path}/**/*.*", recursive=self.ch.recursive))
+        
         for c_id in self.clips:
-            cwd = os.getcwd()
-
-            orig_path = self.clips[c_id]["orig_path"]
-            imagefile = os.path.basename(orig_path)
-            dirpath = os.path.dirname(self.filename)
-            os.chdir(dirpath)
-
-            search_paths = []
-            for spath in self.search_paths:
-                spath = re.sub("dirpath", "", spath)
-                spath = dirpath + spath
-                search_paths.append(spath)
-
-            files = [orig_path]
-            for search_path in search_paths:
-                files.extend(glob("{0}/{1}".format(search_path, imagefile)))
-
+            clip = self.clips[c_id]
+            # LW is windows tools, so windows path need to be replaced
+            # under linux, and treated the sameunder windows
+            imagefile = os.path.basename(clip.replace('\\', os.sep))
             ifile = None
             for f in files:
-                if self.absfilepath:
-                    y = os.path.abspath(f)
-                else:
-                    y = os.path.relpath(f)
+                if re.search(re.escape(imagefile), f, re.I):
+                    if self.absfilepath:
+                        ifile = os.path.abspath(f)
+                    else:
+                        ifile = os.path.relpath(f)
 
-                if os.path.isfile(y):
-                    ifile = y
                     if ifile not in self.images:
                         self.images.append(ifile)
                     continue
-            if None is ifile and not self.allow_missing_images:
+            
+            self.ch.images[c_id] = ifile
+
+        for c_id in self.clips:
+            if None is self.ch.images[c_id] and not self.ch.cancel_search:
                 raise lwoNoImageFoundException(
-                    "No valid image found for path: {} {}".format(
-                        orig_path, search_paths
-                    )
+                    f"Can't find filepath for image: \"{self.clips[c_id]}\""
                 )
 
-            os.chdir(cwd)
-            self.clips[c_id]["new_path"] = ifile
-
     def validate_lwo(self):
-        self.resolve_clips()
+        self.l.info(f"Validating LWO: {self.filename}")
         for surf_key in self.surfs:
             surf_data = self.surfs[surf_key]
             for textures_type in surf_data.textures.keys():
                 for texture in surf_data.textures[textures_type]:
                     ci = texture.clipid
                     if ci not in self.clips.keys():
-                        print(f"WARNING in material {surf_data.name}")
-                        print(f"\tci={ci}, not present in self.clips.keys():")
-                        # pprint(self.clips)
-                        self.clips[ci] = {"new_path": None}
-                    texture.clip = self.clips[ci]
+                    #if ci not in self.ch.images.keys():
+                        self.l.debug(f"WARNING in material {surf_data.name}")
+                        self.l.debug(f"    ci={ci}, not present in self.clips.keys():")
+                        self.ch.images[ci] = None
+                    texture.image = self.ch.images[ci]
+
+#             for texture in surf_data.textures_5:
+#                 ci = texture.id
+#                 texture.image = self.ch.images[ci]
+# 
