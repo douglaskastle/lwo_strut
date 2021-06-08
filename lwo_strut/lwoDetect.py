@@ -4,6 +4,7 @@ from .LWO1 import LWO1
 from .LWO2 import LWO2
 from .LWO3 import LWO3
 
+
 class LWODetect:
     def __new__(self, filename, loglevel=logging.INFO):
         f = open(filename, "rb")
@@ -23,5 +24,5 @@ class LWODetect:
         else:
             msg = f"Invalid LWO File Type: {filename}"
             raise lwoUnsupportedFileException(msg)
-        
+
         return lwo

@@ -23,6 +23,7 @@ from collections import OrderedDict
 
 from .lwoLogger import LWOLogger
 
+
 class _lwo_base:
     def __eq__(self, x):
         if not isinstance(x, self.__class__):
@@ -139,7 +140,9 @@ class _obj_surf(_lwo_base):
     def lwoprint(self):  # debug: no cover
         print(f"SURFACE")
         print(f"Surface Name:       {self.name}")
-        print(f"Color:              {int(self.colr[0]*256)} {int(self.colr[1]*256)} {int(self.colr[2]*256)}")
+        print(
+            f"Color:              {int(self.colr[0]*256)} {int(self.colr[1]*256)} {int(self.colr[2]*256)}"
+        )
         print(f"Luminosity:         {self.lumi*100:>8.1f}%")
         print(f"Diffuse:            {self.diff*100:>8.1f}%")
         print(f"Specular:           {self.spec*100:>8.1f}%")
@@ -160,6 +163,7 @@ class _obj_surf(_lwo_base):
             for texture in self.textures[textures_type]:
                 texture.lwoprint(indent=1)
 
+
 class _surf_position(_lwo_base):
     __slots__ = (
         "cntr",
@@ -177,6 +181,7 @@ class _surf_position(_lwo_base):
         self.fall = (0, 0.0, 0.0, 0.0, 0)
         self.oref = ""
         self.csys = 0
+
 
 class _surf_texture(_lwo_base):
     __slots__ = (
@@ -226,7 +231,7 @@ class _surf_texture(_lwo_base):
         print(f"Function:       {self.func}")
         print(f"Image:          {self.image}")
         print()
-        
+
 
 class LWOBase:
     def __init__(self, filename=None, loglevel=logging.INFO):
@@ -239,21 +244,21 @@ class LWOBase:
         self.tags = []
         self.clips = {}
         self.images = []
-        
+
         self.l = LWOLogger("LWO", loglevel)
-    
+
     def info(self, msg):
-         self.l.info(msg)
-        
+        self.l.info(msg)
+
     def warning(self, msg):
-         self.l.warning(msg)
-        
+        self.l.warning(msg)
+
     def error(self, msg):
-         if self.l.level < logging.INFO:
-             raise Exception(msg)
-         else:
-             self.l.error(msg)
-    
+        if self.l.level < logging.INFO:
+            raise Exception(msg)
+        else:
+            self.l.error(msg)
+
     def read_lwostring(self, raw_name):
         """Parse a zero-padded string."""
 
@@ -297,7 +302,3 @@ class LWOBase:
                 pnts[1] - self.layers[-1].pivot[2],
             ]
             self.layers[-1].pnts.append(pnts)
-
-
-
-
