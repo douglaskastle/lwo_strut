@@ -51,4 +51,8 @@ class LwoFile(object):
     def load_pickle(self):
         print(self.picklefile)
         with open(self.picklefile, "rb") as f:
-            return pickle.load(f)
+            try:
+                return pickle.load(f)
+            except ValueError:
+                # 3.8 pickle is different from 3.7, don't care if the pickle fails
+                pass
