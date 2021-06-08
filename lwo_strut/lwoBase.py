@@ -247,6 +247,9 @@ class LWOBase:
 
         self.l = LWOLogger("LWO", loglevel)
 
+    def debug(self, msg):
+         self.l.debug(msg)
+        
     def info(self, msg):
         self.l.info(msg)
 

@@ -3,7 +3,7 @@ import chunk
 
 from .lwoBase import LWOBase, _lwo_base, _obj_layer, _obj_surf
 
-# , _obj_surf, _surf_texture, _surf_position
+#, _obj_surf, _surf_texture, _surf_position
 class _surf_texture_5(_lwo_base):
     __slots__ = ("id", "image", "X", "Y", "Z")
 
@@ -18,7 +18,6 @@ class _surf_texture_5(_lwo_base):
 
 class LWO1(LWOBase):
     """Read version 1 file, LW < 6."""
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.file_types = [b"LWOB", b"LWLO"]
@@ -127,15 +126,7 @@ class LWO1(LWOBase):
                 if s_angle > 0.0:
                     surf.smooth = True
 
-            elif subchunk_name in [
-                b"CTEX",
-                b"DTEX",
-                b"STEX",
-                b"RTEX",
-                b"TTEX",
-                b"BTEX",
-                b"LTEX",
-            ]:
+            elif subchunk_name in [b"CTEX", b"DTEX", b"STEX", b"RTEX", b"TTEX", b"BTEX", b"LTEX"]:
                 texture = None
 
             elif subchunk_name == b"TIMG":
@@ -158,28 +149,49 @@ class LWO1(LWOBase):
                     elif mapping & 4:
                         texture.Z = True
             elif subchunk_name == b"FLAG":
-                pass  # SKIPPING
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
             elif subchunk_name == b"VLUM":
-                pass  # SKIPPING
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
             elif subchunk_name == b"VDIF":
-                pass  # SKIPPING
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
             elif subchunk_name == b"VSPC":
-                pass  # SKIPPING
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
             elif subchunk_name == b"VRFL":
-                pass  # SKIPPING
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
             elif subchunk_name == b"VTRN":
-                pass  # SKIPPING
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
             elif subchunk_name == b"RFLT":
-                pass  # SKIPPING
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
             elif subchunk_name == b"ALPH":
-                pass  # SKIPPING
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
+            elif subchunk_name == b"TOPC":
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
+            elif subchunk_name == b"TWRP":
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
+            elif subchunk_name == b"TSIZ":
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
+            elif subchunk_name == b"TCTR":
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
+            elif subchunk_name == b"TAAS":
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
+            elif subchunk_name == b"TVAL":
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
+            elif subchunk_name == b"TFP0":
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
+            elif subchunk_name == b"TAMP":
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
+            elif subchunk_name == b"RIMG":
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
+            elif subchunk_name == b"TCLR":
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
             else:
-                self.l.debug(f"Unimplemented SubBlock: {subchunk_name}")
+                #self.error(f"Unsupported SubBlock: {subchunk_name}")
+                self.debug(f"Unsupported SubBlock: {subchunk_name}")
 
             offset += subchunk_len
 
         self.surfs[surf.name] = surf
-
+    
     def read_lwo(self):
         """Read version 1 file, LW < 6."""
         self.f = open(self.filename, "rb")
@@ -189,11 +201,9 @@ class LWO1(LWOBase):
             self.error(f"Error parsing file header! Filename {self.filename}")
             self.f.close()
             return
-
+        
         if not chunk_name in self.file_types:
-            raise Exception(
-                f"Incorrect file type: {chunk_name} not in {self.file_types}"
-            )
+            raise Exception(f"Incorrect file type: {chunk_name} not in {self.file_types}")
         self.file_type = chunk_name
 
         self.last_pols_count = 0
