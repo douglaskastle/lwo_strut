@@ -246,6 +246,8 @@ class LWOBase:
         self.clips = {}
         self.images = []
         
+        self.pnt_count = 0
+        
         self.rootchunk = None
         self.seek = 0
 
@@ -320,6 +322,7 @@ class LWOBase:
                 pnts[2] - self.layers[-1].pivot[1],
                 pnts[1] - self.layers[-1].pivot[2],
             ]
+            self.pnt_count += 1
             self.layers[-1].pnts.append(pnts)
 
     def read_lwo(self):
