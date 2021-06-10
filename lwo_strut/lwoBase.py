@@ -16,6 +16,7 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
+import chunk
 import struct
 import logging
 from pprint import pprint
@@ -244,9 +245,21 @@ class LWOBase:
         self.tags = []
         self.clips = {}
         self.images = []
+        
+        self.rootchunk = None
+        self.seek = 0
 
         self.l = LWOLogger("LWO", loglevel)
 
+    @property
+    def bytes2(self):
+#         self.debug(self.rootchunk)
+#         self.debug(self.rootchunk.getsize())
+#         self.debug(self.rootchunk.getname())
+#         self.debug(self.rootchunk.tell())
+        #self.rootchunk.seek(0)
+        return self.rootchunk.read()
+        
     def debug(self, msg):
          self.l.debug(msg)
         
@@ -278,24 +291,27 @@ class LWOBase:
 
         return name, name_len
 
-    def read_tags(self, tag_bytes):
+    def read_tags(self):
         """Read the object's Tags chunk."""
+        bytes = self.bytes2
         offset = 0
-        chunk_len = len(tag_bytes)
+        chunk_len = len(bytes)
 
         while offset < chunk_len:
-            tag, tag_len = self.read_lwostring(tag_bytes[offset:])
+            tag, tag_len = self.read_lwostring(bytes[offset:])
             offset += tag_len
             self.tags.append(tag)
+        self.seek += offset
 
-    def read_pnts(self, pnt_bytes):
+    def read_pnts(self):
         """Read the layer's points."""
+        bytes = self.bytes2
         self.info(f"    Reading Layer ({self.layers[-1].name }) Points")
         offset = 0
-        chunk_len = len(pnt_bytes)
+        chunk_len = len(bytes)
 
         while offset < chunk_len:
-            pnts = struct.unpack(">fff", pnt_bytes[offset : offset + 12])
+            pnts = struct.unpack(">fff", bytes[offset : offset + 12])
             offset += 12
             # Re-order the points so that the mesh has the right pitch,
             # the pivot already has the correct order.
@@ -305,3 +321,30 @@ class LWOBase:
                 pnts[1] - self.layers[-1].pivot[2],
             ]
             self.layers[-1].pnts.append(pnts)
+
+    def read_lwo(self):
+        self.f = open(self.filename, "rb")
+        try:
+            header, chunk_size, chunk_name = struct.unpack(">4s1L4s", self.f.read(12))
+        except:
+            self.error(f"Error parsing file header! Filename {self.filename}")
+            self.f.close()
+            return
+
+        if not chunk_name in self.file_types:
+            raise Exception(
+                f"Incorrect file type: {chunk_name} not in {self.file_types}"
+            )
+        self.file_type = chunk_name
+
+        self.info(f"Importing LWO: {self.filename}")
+        self.info(f"{self.file_type.decode('ascii')} Format")
+
+        while True:
+            try:
+                self.rootchunk = chunk.Chunk(self.f)
+            except EOFError:
+                break
+            self.parse_tags()
+        del self.f
+

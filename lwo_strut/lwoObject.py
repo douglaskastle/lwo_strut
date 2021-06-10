@@ -177,7 +177,7 @@ class lwoObject:
                         self.ch.images[ci] = None
                     texture.image = self.ch.images[ci]
 
-#             for texture in surf_data.textures_5:
-#                 ci = texture.id
-#                 texture.image = self.ch.images[ci]
-# 
+            for texture in surf_data.textures_5:
+                ci = texture.id
+                texture.image = self.ch.images[ci]
+
