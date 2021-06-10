@@ -45,7 +45,6 @@ class LWO2(LWOBase):
         pivot = struct.unpack(">fff", bytes[offset : offset + 12])
         # Swap Y and Z to match Blender's pitch.
         new_layr.pivot = [pivot[0], pivot[2], pivot[1]]
-        print(new_layr.pivot)
         offset += 12
         layr_name, name_len = self.read_lwostring(bytes[offset:])
         offset += name_len
@@ -382,121 +381,112 @@ class LWO2(LWOBase):
             offset += 2
             bone_dict[pid] = self.tags[tid]
 
-    def read_position(self, bytes, offset, subchunk_len):
+    def read_position(self, subbytes, offset, subchunk_len):
         p = _surf_position()
-        #bytes = self.bytes2
         suboffset = 0
 
         while suboffset < subchunk_len:
             (subsubchunk_name,) = struct.unpack(
-                "4s", bytes[offset + suboffset : offset + suboffset + 4]
+                "4s", subbytes[offset + suboffset : offset + suboffset + 4]
             )
             suboffset += 4
             (slen,) = struct.unpack(
-                ">H", bytes[offset + suboffset : offset + suboffset + 2]
+                ">H", subbytes[offset + suboffset : offset + suboffset + 2]
             )
             suboffset += 2
 
-            #self.debug(f"read_position {subsubchunk_name} {slen}")
             if b"CNTR" == subsubchunk_name:
-                p.cntr = struct.unpack(">fffh", bytes[offset + suboffset : offset + suboffset + 14])
+                p.cntr = struct.unpack(">fffh", subbytes[offset + suboffset : offset + suboffset + 14])
                 if 20 == slen:
-                    _ = struct.unpack(">hf", bytes[offset + suboffset + 14 : offset + suboffset + slen])
+                    _ = struct.unpack(">hf", subbytes[offset + suboffset + 14 : offset + suboffset + slen])
             elif b"SIZE" == subsubchunk_name:
                 p.size = struct.unpack(
-                    ">fffh", bytes[offset + suboffset : offset + suboffset + slen]
+                    ">fffh", subbytes[offset + suboffset : offset + suboffset + slen]
                 )
             elif b"ROTA" == subsubchunk_name:
-#                 if not 14 == slen:
-#                     #self.error(f"incorrect slen: {slen}")
-#                     pass
                 p.rota = struct.unpack(
-                    ">fffH", bytes[offset + suboffset : offset + suboffset + 14]
+                    ">fffH", subbytes[offset + suboffset : offset + suboffset + 14]
                 )
                 if 20 == slen:
-                    _ = struct.unpack(">hf", bytes[offset + suboffset + 14 : offset + suboffset + slen])
+                    _ = struct.unpack(">hf", subbytes[offset + suboffset + 14 : offset + suboffset + slen])
             elif b"FALL" == subsubchunk_name:
                 p.fall = struct.unpack(
-                    ">hfffh", bytes[offset + suboffset : offset + suboffset + slen]
+                    ">hfffh", subbytes[offset + suboffset : offset + suboffset + slen]
                 )
             elif b"OREF" == subsubchunk_name:
-                p.oref, name_len = self.read_lwostring(bytes[offset + suboffset :])
+                p.oref, name_len = self.read_lwostring(subbytes[offset + suboffset :])
             elif b"CSYS" == subsubchunk_name:
                 (p.csys,) = struct.unpack(
-                    ">h", bytes[offset + suboffset : offset + suboffset + slen]
+                    ">h", subbytes[offset + suboffset : offset + suboffset + slen]
                 )
             suboffset += slen
         return p
 
-    def read_texture(self, bytes, offset, subchunk_len):
-        #bytes = self.bytes2
+    def read_texture(self, subbytes, offset, subchunk_len):
         texture = _surf_texture()
-        ordinal, ord_len = self.read_lwostring(bytes[offset + 4 :])
+        ordinal, ord_len = self.read_lwostring(subbytes[offset + 4 :])
         suboffset = 6 + ord_len
-        #self.debug(f"read_texture {ordinal} {ord_len}")
         while suboffset < subchunk_len:
             (subsubchunk_name,) = struct.unpack(
-                "4s", bytes[offset + suboffset : offset + suboffset + 4]
+                "4s", subbytes[offset + suboffset : offset + suboffset + 4]
             )
             suboffset += 4
             (subsubchunk_len,) = struct.unpack(
-                ">H", bytes[offset + suboffset : offset + suboffset + 2]
+                ">H", subbytes[offset + suboffset : offset + suboffset + 2]
             )
             suboffset += 2
-            
-            #self.debug(f"read_texture {subsubchunk_name} {suboffset}")
-            
+                        
             if subsubchunk_name == b"TMAP":
                 texture.position = self.read_position(
-                    bytes, (offset + suboffset), subsubchunk_len
+                    subbytes, (offset + suboffset), subsubchunk_len
                 )
             elif subsubchunk_name == b"CHAN":
                 (texture.channel,) = struct.unpack(
                     "4s",
-                    bytes[offset + suboffset : offset + suboffset + 4],
+                    subbytes[offset + suboffset : offset + suboffset + 4],
                 )
                 texture.channel = texture.channel.decode("ascii")
             elif subsubchunk_name == b"OPAC":
                 (texture.opactype,) = struct.unpack(
                     ">H",
-                    bytes[offset + suboffset : offset + suboffset + 2],
+                    subbytes[offset + suboffset : offset + suboffset + 2],
                 )
                 (texture.opac,) = struct.unpack(
                     ">f",
-                    bytes[offset + suboffset + 2 : offset + suboffset + 6],
+                    subbytes[offset + suboffset + 2 : offset + suboffset + 6],
                 )
             elif subsubchunk_name == b"ENAB":
                 (texture.enab,) = struct.unpack(
                     ">H",
-                    bytes[offset + suboffset : offset + suboffset + 2],
+                    subbytes[offset + suboffset : offset + suboffset + 2],
                 )
             elif subsubchunk_name == b"IMAG":
                 (texture.clipid,) = struct.unpack(
                     ">H",
-                    bytes[offset + suboffset : offset + suboffset + 2],
+                    subbytes[offset + suboffset : offset + suboffset + 2],
                 )
             elif subsubchunk_name == b"PROJ":
                 (texture.projection,) = struct.unpack(
                     ">H",
-                    bytes[offset + suboffset : offset + suboffset + 2],
+                    subbytes[offset + suboffset : offset + suboffset + 2],
                 )
             elif subsubchunk_name == b"VMAP":
                 texture.uvname, name_len = self.read_lwostring(
-                    bytes[offset + suboffset :]
+                    subbytes[offset + suboffset :]
                 )
             elif subsubchunk_name == b"FUNC":  # This is the procedural
                 texture.func, name_len = self.read_lwostring(
-                    bytes[offset + suboffset :]
+                    subbytes[offset + suboffset :]
                 )
             elif subsubchunk_name == b"NEGA":
                 (texture.nega,) = struct.unpack(
                     ">H",
-                    bytes[offset + suboffset : offset + suboffset + 2],
+                    subbytes[offset + suboffset : offset + suboffset + 2],
                 )
             elif subsubchunk_name == b"AXIS":
                 (texture.axis,) = struct.unpack(
                     ">H",
-                    bytes[offset + suboffset : offset + suboffset + 2],
+                    subbytes[offset + suboffset : offset + suboffset + 2],
                 )
             elif subsubchunk_name == b"WRAP":
                 self.debug(f"Unimplemented SubSubBlock: {subsubchunk_name} {subchunk_len}")
