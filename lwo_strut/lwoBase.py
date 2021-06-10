@@ -245,6 +245,8 @@ class LWOBase:
         self.clips = {}
         self.images = []
 
+        self.pnt_count = 0
+
         self.l = LWOLogger("LWO", loglevel)
 
     def debug(self, msg):
@@ -304,4 +306,5 @@ class LWOBase:
                 pnts[2] - self.layers[-1].pivot[1],
                 pnts[1] - self.layers[-1].pivot[2],
             ]
+            self.pnt_count += 1
             self.layers[-1].pnts.append(pnts)
