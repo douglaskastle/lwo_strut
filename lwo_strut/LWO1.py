@@ -137,7 +137,7 @@ class LWO1(LWOBase):
                 texture = _surf_texture_5()
                 self.clips[texture.id] = path
                 surf.textures_5.append(texture)
-                surf.textures[texture.id] = texture
+                #surf.textures[texture.id] = texture
 
             elif subchunk_name == b"TFLG":
                 if texture:
