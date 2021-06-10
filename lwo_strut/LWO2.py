@@ -404,17 +404,17 @@ class LWO2(LWOBase):
             suboffset += 2
 
             if b"CNTR" == subsubchunk_name:
-                p.cntr = struct.unpack(
-                    ">fffh", surf_bytes[offset + suboffset : offset + suboffset + slen]
-                )
+                p.cntr = struct.unpack(">fffh", surf_bytes[offset + suboffset : offset + suboffset + 14])
+                if 20 == slen:
+                    _ = struct.unpack(">hf", surf_bytes[offset + suboffset + 14 : offset + suboffset + slen])
             elif b"SIZE" == subsubchunk_name:
                 p.size = struct.unpack(
                     ">fffh", surf_bytes[offset + suboffset : offset + suboffset + slen]
                 )
             elif b"ROTA" == subsubchunk_name:
-                p.rota = struct.unpack(
-                    ">fffh", surf_bytes[offset + suboffset : offset + suboffset + slen]
-                )
+                p.rota = struct.unpack(">fffh", surf_bytes[offset + suboffset : offset + suboffset + 14])
+                if 20 == slen:
+                    _ = struct.unpack(">hf", surf_bytes[offset + suboffset + 14 : offset + suboffset + slen])
             elif b"FALL" == subsubchunk_name:
                 p.fall = struct.unpack(
                     ">hfffh", surf_bytes[offset + suboffset : offset + suboffset + slen]
