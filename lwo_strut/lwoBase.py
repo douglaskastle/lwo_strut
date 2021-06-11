@@ -252,6 +252,8 @@ class LWOBase:
         self.rootchunk = None
         self.seek = 0
 
+        self.pnt_count = 0
+
         self.l = LWOLogger("LWO", loglevel)
 
     @property
