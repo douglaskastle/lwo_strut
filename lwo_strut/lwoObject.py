@@ -165,6 +165,7 @@ class lwoObject:
 
     def validate_lwo(self):
         self.l.info(f"Validating LWO: {self.filename}")
+        self.l.info(f"{self.lwo.pnt_count} points")
         for surf_key in self.surfs:
             surf_data = self.surfs[surf_key]
             for textures_type in surf_data.textures.keys():
@@ -180,4 +181,9 @@ class lwoObject:
 #             for texture in surf_data.textures_5:
 #                 ci = texture.id
 #                 texture.image = self.ch.images[ci]
-# 
+            
+            for textures_type in surf_data.textures2.keys():
+                for texture in surf_data.textures2[textures_type]:
+                    ci = texture.clipid
+                    self.l.debug(f"{ci}")
+
