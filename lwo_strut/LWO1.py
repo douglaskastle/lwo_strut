@@ -8,7 +8,7 @@ class _surf_texture_5(_lwo_base):
     __slots__ = ("id", "image", "X", "Y", "Z")
 
     def __init__(self):
-        self.id = id(self)
+        self.clipid = id(self)
         self.rev = 5
         self.image = None
         self.X = False
@@ -94,37 +94,37 @@ class LWO1(LWOBase):
             offset += 2
 
             # Now test which subchunk it is.
-            if subchunk_name == b"COLR":
+            if b"COLR" == subchunk_name:
                 color = struct.unpack(">BBBB", bytes[offset : offset + 4])
                 surf.colr = [color[0] / 255.0, color[1] / 255.0, color[2] / 255.0]
 
-            elif subchunk_name == b"DIFF":
+            elif b"DIFF" == subchunk_name:
                 (surf.diff,) = struct.unpack(">h", bytes[offset : offset + 2])
                 surf.diff /= 256.0  # Yes, 256 not 255.
 
-            elif subchunk_name == b"LUMI":
+            elif b"LUMI" == subchunk_name:
                 (surf.lumi,) = struct.unpack(">h", bytes[offset : offset + 2])
                 surf.lumi /= 256.0
 
-            elif subchunk_name == b"SPEC":
+            elif b"SPEC" == subchunk_name:
                 (surf.spec,) = struct.unpack(">h", bytes[offset : offset + 2])
                 surf.spec /= 256.0
 
-            elif subchunk_name == b"REFL":
+            elif b"REFL" == subchunk_name:
                 (surf.refl,) = struct.unpack(">h", bytes[offset : offset + 2])
                 surf.refl /= 256.0
 
-            elif subchunk_name == b"TRAN":
+            elif b"TRAN" == subchunk_name:
                 (surf.tran,) = struct.unpack(">h", bytes[offset : offset + 2])
                 surf.tran /= 256.0
 
-            elif subchunk_name == b"RIND":
+            elif b"RIND" == subchunk_name:
                 (surf.rind,) = struct.unpack(">f", bytes[offset : offset + 4])
 
-            elif subchunk_name == b"GLOS":
+            elif b"GLOS" == subchunk_name:
                 (surf.glos,) = struct.unpack(">h", bytes[offset : offset + 2])
 
-            elif subchunk_name == b"SMAN":
+            elif b"SMAN" == subchunk_name:
                 (s_angle,) = struct.unpack(">f", bytes[offset : offset + 4])
                 if s_angle > 0.0:
                     surf.smooth = True
@@ -132,17 +132,21 @@ class LWO1(LWOBase):
             elif subchunk_name in [b"CTEX", b"DTEX", b"STEX", b"RTEX", b"TTEX", b"BTEX", b"LTEX"]:
                 texture = None
 
-            elif subchunk_name == b"TIMG":
+            elif b"TIMG" == subchunk_name:
                 path, path_len = self.read_lwostring(bytes[offset:])
                 if path == "(none)":
+                    offset += path_len
                     continue
 
                 texture = _surf_texture_5()
-                self.clips[texture.id] = path
+                self.clips[texture.clipid] = path
                 surf.textures_5.append(texture)
-                #surf.textures[texture.id] = texture
+                
+                if texture.clipid not in surf.textures2:
+                    surf.textures2[texture.clipid] = []
+                surf.textures2[texture.clipid].append(texture)
 
-            elif subchunk_name == b"TFLG":
+            elif b"TFLG" == subchunk_name:
                 if texture:
                     (mapping,) = struct.unpack(">h", bytes[offset : offset + 2])
                     if mapping & 1:
@@ -151,50 +155,70 @@ class LWO1(LWOBase):
                         texture.Y = True
                     elif mapping & 4:
                         texture.Z = True
-            elif subchunk_name == b"FLAG":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
-            elif subchunk_name == b"VLUM":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
-            elif subchunk_name == b"VDIF":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
-            elif subchunk_name == b"VSPC":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
-            elif subchunk_name == b"VRFL":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
-            elif subchunk_name == b"VTRN":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
-            elif subchunk_name == b"RFLT":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
-            elif subchunk_name == b"ALPH":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
-            elif subchunk_name == b"TOPC":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
-            elif subchunk_name == b"TWRP":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
-            elif subchunk_name == b"TSIZ":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
-            elif subchunk_name == b"TCTR":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
-            elif subchunk_name == b"TAAS":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
-            elif subchunk_name == b"TVAL":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
-            elif subchunk_name == b"TFP0":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
-            elif subchunk_name == b"TAMP":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
-            elif subchunk_name == b"RIMG":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
-            elif subchunk_name == b"TCLR":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
-            elif subchunk_name == b"TFAL":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
-            elif subchunk_name == b"TVEL":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
-            elif subchunk_name == b"TREF":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
-            elif subchunk_name == b"TALP":
-                self.debug(f"Unimplemented SubBlock: {subchunk_name}")
+            elif b"FLAG" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"VLUM" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"VDIF" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"VSPC" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"VRFL" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"VTRN" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"RFLT" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"ALPH" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"TOPC" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"TWRP" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"TSIZ" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"TCTR" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"TAAS" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"TVAL" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"TFP0" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"TAMP" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"RIMG" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"TCLR" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"TFAL" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"TVEL" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"TREF" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"TALP" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"EDGE" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"GLOW" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"TIP0" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"TFP1" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"TFP2" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"TFP3" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"SPBF" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"SHDR" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"SDAT" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
+            elif b"IMSQ" == subchunk_name:
+                self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
             else:
                 self.error(f"Unsupported SubBlock: {subchunk_name}")
                 #self.debug(f"Unsupported SubBlock: {subchunk_name}")
@@ -205,23 +229,23 @@ class LWO1(LWOBase):
     
     def parse_tags(self):
         chunkname = self.rootchunk.chunkname
-        if chunkname == b"SRFS":
+        if b"SRFS" == chunkname:
             self.read_tags()
-        elif chunkname == b"LAYR":
+        elif b"LAYR" == chunkname:
             self.read_layr()
-        elif chunkname == b"PNTS":
+        elif b"PNTS" == chunkname:
             if len(self.layers) == 0:
                 # LWOB files have no LAYR chunk to set this up.
                 nlayer = _obj_layer()
                 nlayer.name = "Layer 1"
                 self.layers.append(nlayer)
             self.read_pnts()
-        elif chunkname == b"POLS":
+        elif b"POLS" == chunkname:
             self.last_pols_count = self.read_pols()
-        elif chunkname == b"PCHS":
+        elif b"PCHS" == chunkname:
             self.last_pols_count = self.read_pols()
             self.layers[-1].has_subds = True
-        elif chunkname == b"PTAG":
+        elif b"PTAG" == chunkname:
             (tag_type,) = struct.unpack("4s", self.rootchunk.read(4))
             if tag_type == b"SURF":
                 raise Exception("Missing commented out function")
@@ -230,7 +254,7 @@ class LWO1(LWOBase):
             #                     )
             else:
                 self.rootchunk.skip()
-        elif chunkname == b"SURF":
+        elif b"SURF" == chunkname:
             self.read_surf()
         else:
             # For Debugging \/.
