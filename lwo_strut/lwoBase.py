@@ -136,6 +136,7 @@ class _obj_surf(_lwo_base):
         self.strs = 0.0  # Smooth Threshold
         self.smooth = False  # Surface Smoothing
         self.textures = {}  # Textures list
+        self.textures2 = {}  # Textures list
         self.textures_5 = []  # Textures list for LWOB
 
     def lwoprint(self):  # debug: no cover
@@ -273,7 +274,7 @@ class LWOBase:
 
     def error(self, msg):
         if self.l.level < logging.INFO:
-            raise Exception(msg)
+            raise Exception(f"{self.filename} {msg}")
         else:
             self.l.error(msg)
 
@@ -351,3 +352,15 @@ class LWOBase:
             self.parse_tags()
         del self.f
 
+#         self.chunks = []
+#         while True:
+#             try:
+#                  self.chunks.append(chunk.Chunk(self.f))
+#             except EOFError:
+#                 break
+#         del self.f
+#         
+#         for rootchunk in self.chunks:
+#             self.debug(rootchunk)
+#             #self.parse_tags()
+#         exit()
