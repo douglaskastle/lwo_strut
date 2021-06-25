@@ -3,7 +3,6 @@ import chunk
 
 from .lwoBase import LWOBase, _lwo_base, _obj_layer, _obj_surf
 
-#, _obj_surf, _surf_texture, _surf_position
 class _surf_texture_5(_lwo_base):
     __slots__ = ("id", "image", "X", "Y", "Z")
 
@@ -140,11 +139,10 @@ class LWO1(LWOBase):
 
                 texture = _surf_texture_5()
                 self.clips[texture.clipid] = path
-                surf.textures_5.append(texture)
-                
-                if texture.clipid not in surf.textures2:
-                    surf.textures2[texture.clipid] = []
-                surf.textures2[texture.clipid].append(texture)
+               
+                if texture.clipid not in surf.textures:
+                    surf.textures[texture.clipid] = []
+                surf.textures[texture.clipid].append(texture)
 
             elif b"TFLG" == subchunk_name:
                 if texture:
@@ -221,7 +219,6 @@ class LWO1(LWOBase):
                 self.debug(f"Unimplemented SubBlock: {subchunk_name}")  
             else:
                 self.error(f"Unsupported SubBlock: {subchunk_name}")
-                #self.debug(f"Unsupported SubBlock: {subchunk_name}")
 
             offset += subchunk_len
 
@@ -247,13 +244,7 @@ class LWO1(LWOBase):
             self.layers[-1].has_subds = True
         elif b"PTAG" == chunkname:
             (tag_type,) = struct.unpack("4s", self.rootchunk.read(4))
-            if tag_type == b"SURF":
-                raise Exception("Missing commented out function")
-            #                     read_surf_tags_5(
-            #                         self.rootchunk.read(), self.layers, self.last_pols_count
-            #                     )
-            else:
-                self.rootchunk.skip()
+            self.rootchunk.skip()
         elif b"SURF" == chunkname:
             self.read_surf()
         else:

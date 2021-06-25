@@ -114,7 +114,6 @@ class _obj_surf(_lwo_base):
         "strs",
         "smooth",
         "textures",
-        "textures_5",
     )
 
     def __init__(self):
@@ -136,8 +135,6 @@ class _obj_surf(_lwo_base):
         self.strs = 0.0  # Smooth Threshold
         self.smooth = False  # Surface Smoothing
         self.textures = {}  # Textures list
-        self.textures2 = {}  # Textures list
-        self.textures_5 = []  # Textures list for LWOB
 
     def lwoprint(self):  # debug: no cover
         print(f"SURFACE")

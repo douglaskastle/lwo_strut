@@ -527,8 +527,7 @@ class LWO2(LWOBase):
             elif b"GVER" == subsubchunk_name:
                 self.debug(f"Unimplemented SubSubBlock: {subsubchunk_name}")                                
             else:
-                self.error(f"Unsupported SubSubBlock: {subsubchunk_name} {subbytes[offset + suboffset:]}")  
-                raise
+                self.error(f"Unsupported SubSubBlock: {subsubchunk_name}")  
             suboffset += subsubchunk_len
 
         return texture
@@ -568,8 +567,6 @@ class LWO2(LWOBase):
         if len(name) != 0:
             surf.name = name
 
-        #self.debug(f"{name}, {name_len}")
-        # We have to read this, but we won't use it...yet.
         s_name, s_name_len = self.read_lwostring(bytes[name_len:])
         offset = name_len + s_name_len
         block_size = len(bytes)
@@ -578,7 +575,6 @@ class LWO2(LWOBase):
             offset += 4
             (subchunk_len,) = struct.unpack(">H", bytes[offset : offset + 2])
             offset += 2
-            #self.debug(f"read_surf {subchunk_name}, {subchunk_len}")
             
 
             # Now test which subchunk it is.
@@ -621,7 +617,6 @@ class LWO2(LWOBase):
 
             elif b"SMAN" == subchunk_name:
                 (s_angle,) = struct.unpack(">f", bytes[offset : offset + 4])
-                # self.debug(s_angle)
                 if s_angle > 0.0:
                     surf.smooth = True
             elif b"BUMP" == subchunk_name:
@@ -644,72 +639,69 @@ class LWO2(LWOBase):
                 else:
                     self.error(f"Unimplemented texture type: {block_type}")
                 
-                if None is not texture:
+                if not texture is None:
                     texture.type = block_type.decode("ascii")
-                    if texture.channel not in surf.textures.keys():
+                    if texture.channel not in surf.textures:
                         surf.textures[texture.channel] = []
                     surf.textures[texture.channel].append(texture)
-#                     if texture.channel not in surf.textures2:
-#                         surf.textures2[texture.channel] = []
-#                     surf.textures2[texture.channel].append(texture)
             elif b"VERS" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover
             elif b"NODS" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"GVAL" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"NVSK" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"CLRF" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"CLRH" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"ADTR" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"SIDE" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"RFOP" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"RIMG" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"TIMG" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"TROP" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"ALPH" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"BUF1" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"BUF2" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"BUF3" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"BUF4" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"LINE" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"NORM" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"RFRS" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"VCOL" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"RFLS" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"CMNT" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"FLAG" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"RSAN" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"LCOL" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"LSIZ" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             elif b"TSAN" == subchunk_name:
-                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  
+                self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover  
             else:
-                self.error(f"Unsupported SubBlock: {subchunk_name}")    
+                self.error(f"Unsupported SubBlock: {subchunk_name}")  # pragma: no cover     
 
             offset += subchunk_len
 
@@ -739,9 +731,16 @@ class LWO2(LWOBase):
             elif vmap_type == b"NORM":
                 self.read_normmap()
             elif vmap_type == b"PICK":
-                self.rootchunk.skip()  # SKIPPING
+                self.debug(f"Unimplemented vmap_type: {vmap_type}")
+                self.rootchunk.skip()
+            elif vmap_type == b"MBAL":
+                self.debug(f"Unimplemented vmap_type: {vmap_type}")
+                self.rootchunk.skip()
+            elif vmap_type == b"MNVW":
+                self.debug(f"Unimplemented vmap_type: {vmap_type}")
+                self.rootchunk.skip()
             else:
-                self.debug(f"Skipping vmap_type: {vmap_type}")
+                self.error(f"Skipping vmap_type: {vmap_type}")
                 self.rootchunk.skip()
 
         elif b"VMAD" == chunkname:
@@ -756,8 +755,17 @@ class LWO2(LWOBase):
                 self.read_weight_vmad()
             elif vmad_type == b"NORM":
                 self.read_normal_vmad()
+            elif vmad_type == b"MORF":
+                self.debug(f"Unimplemented vmad_type: {vmad_type}")
+                self.rootchunk.skip()
+            elif vmad_type == b"MNVW":
+                self.debug(f"Unimplemented vmad_type: {vmad_type}")
+                self.rootchunk.skip()
+            elif vmad_type == b"APSL":
+                self.debug(f"Unimplemented vmad_type: {vmad_type}")
+                self.rootchunk.skip()
             else:
-                self.debug(f"Skipping vmad_type: {vmad_type}")
+                self.error(f"Unsupported vmad_type: {vmad_type}")
                 self.rootchunk.skip()
 
         elif b"POLS" == chunkname:
@@ -773,53 +781,87 @@ class LWO2(LWOBase):
             elif face_type == b"BONE":
                 self.read_bones()
                 self.just_read_bones = True
+            elif face_type == b"CURV":
+                self.debug(f"Unimplemented face_type: {face_type}")
+                self.rootchunk.skip()
+            elif face_type == b"PTCL":
+                self.debug(f"Unimplemented face_type: {face_type}")
+                self.rootchunk.skip()
             else:
-                self.debug(f"Skipping face_type: {face_type}")
+                self.error(f"Unsupported face_type: {face_type}")
                 self.rootchunk.skip()
 
         elif b"PTAG" == chunkname:
             (tag_type,) = struct.unpack("4s", self.rootchunk.read(4))
-            if tag_type == b"SURF" and not self.just_read_bones:
+#             if tag_type == b"SURF" and not self.just_read_bones:
+#                 # Ignore the surface data if we just read a bones chunk.
+#                 self.read_surf_tags()
+            if tag_type == b"SURF":
                 # Ignore the surface data if we just read a bones chunk.
                 self.read_surf_tags()
 
-            elif self.ch.skel_to_arm:
-                if tag_type == b"BNUP":
-                    self.read_bone_tags("BNUP")
-                elif tag_type == b"BONE":
-                    self.read_bone_tags("BONE")
-                elif tag_type == b"PART":
-                    self.rootchunk.skip()  # SKIPPING
-                elif tag_type == b"COLR":
-                    self.rootchunk.skip()  # SKIPPING
-                else:
-                    self.debug(f"Skipping tag: {tag_type}")
-                    self.rootchunk.skip()
+            elif tag_type == b"BNUP":
+                self.read_bone_tags("BNUP")
+            elif tag_type == b"BONE":
+                self.read_bone_tags("BONE")
+            elif tag_type == b"COLR":
+                self.debug(f"Unimplemented tag_type: {tag_type}")  
+                self.rootchunk.skip()
+            elif tag_type == b"PART":
+                self.debug(f"Unimplemented tag_type: {tag_type}")  
+                self.rootchunk.skip()
+            
+#             elif self.ch.skel_to_arm:
+#                 if tag_type == b"BNUP":
+#                     self.read_bone_tags("BNUP")
+#                 elif tag_type == b"BONE":
+#                     self.read_bone_tags("BONE")
+#                 else:
+#                     self.error(f"Skipping tag: {tag_type}")
+#                     self.rootchunk.skip()
+#            
+#             elif tag_type == b"BNUP":
+#                 self.rootchunk.skip()  # SKIPPING
+#             elif tag_type == b"BONE":
+#                 self.rootchunk.skip()  # SKIPPING
+            
+            elif tag_type == b"BNWT":
+                self.debug(f"Unimplemented tag_type: {tag_type}")  
+                self.rootchunk.skip()
+            elif tag_type == b"SKCL":
+                self.debug(f"Unimplemented tag_type: {tag_type}")  
+                self.rootchunk.skip()
+            elif tag_type == b"SKID":
+                self.debug(f"Unimplemented tag_type: {tag_type}")  
+                self.rootchunk.skip()
+            elif tag_type == b"TXUV":
+                self.debug(f"Unimplemented tag_type: {tag_type}")  
+                self.rootchunk.skip()
             else:
-                self.debug(f"Skipping tag_type: {tag_type}")
+                self.error(f"Unsupported tag_type: {tag_type}")
                 self.rootchunk.skip()
         elif b"SURF" == chunkname:
             self.read_surf()
         elif b"CLIP" == chunkname:
             self.read_clip()
         elif b"BBOX" == chunkname:
-            self.rootchunk.skip()  # SKIPPING
             self.debug(f"Unimplemented Chunk: {chunkname}")  
+            self.rootchunk.skip()  # SKIPPING
         elif b"VMPA" == chunkname:
-            self.rootchunk.skip()  # SKIPPING
             self.debug(f"Unimplemented Chunk: {chunkname}")  
+            self.rootchunk.skip()  # SKIPPING
         elif b"PNTS" == chunkname:
-            self.rootchunk.skip()  # SKIPPING
             self.debug(f"Unimplemented Chunk: {chunkname}")  
+            self.rootchunk.skip()  # SKIPPING
         elif b"POLS" == chunkname:
-            self.rootchunk.skip()  # SKIPPING
             self.debug(f"Unimplemented Chunk: {chunkname}")  
+            self.rootchunk.skip()  # SKIPPING
         elif b"PTAG" == chunkname:
-            self.rootchunk.skip()  # SKIPPING
             self.debug(f"Unimplemented Chunk: {chunkname}")  
+            self.rootchunk.skip()  # SKIPPING
         elif b"ENVL" == chunkname:
-            self.rootchunk.skip()  # SKIPPING
             self.debug(f"Unimplemented Chunk: {chunkname}")  
+            self.rootchunk.skip()  # SKIPPING
         else:
             self.error(f"Skipping Chunk: {chunkname}")       
             self.rootchunk.skip()

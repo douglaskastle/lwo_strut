@@ -47,6 +47,8 @@ class lwoObject:
         self.absfilepath = True
         self.cwd = os.getcwd()
         self.loglevel = loglevel
+        self.resolved_images = False
+        self.texture_num = 0
         
         self.l = LWOLogger("WRAP", self.loglevel)
         self.ch = chd()
@@ -134,9 +136,14 @@ class lwoObject:
         return paths
     
     def resolve_clips(self):
+        self.l.info(f"Resolving Images:")
+        self.l.debug(f"Recursive: {self.ch.recursive}")
         files = []
         for search_path in self.search_paths:
-            files.extend(glob(f"{search_path}/**/*.*", recursive=self.ch.recursive))
+            if self.ch.recursive:
+                files.extend(glob(f"{search_path}/**/*.*", recursive=self.ch.recursive))
+            else:
+                files.extend(glob(f"{search_path}/*.*"))
         
         for c_id in self.clips:
             clip = self.clips[c_id]
@@ -156,34 +163,36 @@ class lwoObject:
                     continue
             
             self.ch.images[c_id] = ifile
+            self.l.debug(f"    I: {self.clips[c_id]}")
+            self.l.debug(f"    O: {ifile}")
 
         for c_id in self.clips:
             if None is self.ch.images[c_id] and not self.ch.cancel_search:
                 raise lwoNoImageFoundException(
                     f"Can't find filepath for image: \"{self.clips[c_id]}\""
                 )
+        self.resolved_images = True
 
     def validate_lwo(self):
+        if not self.resolved_images:
+            self.resolve_clips()
         self.l.info(f"Validating LWO: {self.filename}")
-        self.l.info(f"{self.lwo.pnt_count} points")
+
         for surf_key in self.surfs:
             surf_data = self.surfs[surf_key]
-            for textures_type in surf_data.textures.keys():
+            for textures_type in surf_data.textures:
                 for texture in surf_data.textures[textures_type]:
                     ci = texture.clipid
-                    if ci not in self.clips.keys():
-                    #if ci not in self.ch.images.keys():
+                    if ci not in self.clips:
                         self.l.debug(f"WARNING in material {surf_data.name}")
-                        self.l.debug(f"    ci={ci}, not present in self.clips.keys():")
+                        self.l.debug(f"    ci={ci}, not present in self.clips:")
                         self.ch.images[ci] = None
+
                     texture.image = self.ch.images[ci]
+                    self.texture_num += 1
 
-#             for texture in surf_data.textures_5:
-#                 ci = texture.id
-#                 texture.image = self.ch.images[ci]
-            
-            for textures_type in surf_data.textures2.keys():
-                for texture in surf_data.textures2[textures_type]:
-                    ci = texture.clipid
-                    self.l.debug(f"{ci}")
-
+        self.l.info(f"    {len(self.layers):<6} layers")
+        self.l.info(f"    {len(self.images):<6} images")
+        self.l.info(f"    {len(self.surfs):<6} surfs")
+        self.l.info(f"    {self.texture_num:<6} textures")
+        self.l.info(f"    {self.lwo.pnt_count:<6} points")
