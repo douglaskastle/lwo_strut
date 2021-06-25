@@ -11,44 +11,39 @@ def main():
         "tests/basic/src/LWO2/box/box6-hidden.lwo",
         "tests/basic/src/LWO/box/box3-uv-layers.lwo",
         "tests/lwo_interceptor/src/LWO2/Federation - Interceptor/objects/interceptor_hull.lwo",
+        "/home/gomez/project/blender-import-lwo/tests/lwo_nasa/src/ISS (High Res)/Objects/Modules/express ELC/ELC2.lwo",
     ]
     for infile in infiles:
         f = LwoFile(infile, create_pickle=True)
         f.check_file()
     
         x = lwoObject(infile)
-        x.search_paths = ["/../images"]
+        x.ch.search_paths = ["../images"]
+        #x.ch.recursive = True
         x.absfilepath = False
         x.read()
+        x.resolve_clips()
+        x.validate_lwo()
     
         #print(f.picklefile)
-        if os.path.isfile(f.picklefile):
-            os.unlink(f.picklefile)
-        f.setup_pickle(x)
+        f.rm_pickle()
+        
+        f.setup_pickle(x.elements)
     
         b = f.load_pickle()
     
-        print(x == b)
+        #print(x == b)
 
 
     infile = "tests/basic/src/LWO2/box/box0.lwo"
     f = LwoFile(infile, create_pickle=True)
     f.check_file()
-
-    x = lwoObject(infile)
-    x.read()
     
-    #print(f.picklefile)
     f.picklefile = re.sub(".lwo.pickle", ".lwo.error0.pickle", f.picklefile)
-    #print(f.picklefile)
 
     x.layers[0].name = "Layer 2"
-    os.unlink(f.picklefile)
-    f.setup_pickle(x)
-    
-    b = f.load_pickle()
-    
-    #print(x == b)
+    f.rm_pickle()
+    f.setup_pickle(x.elements)
 
 
 if __name__ == "__main__":
