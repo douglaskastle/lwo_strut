@@ -28,7 +28,7 @@ def test_load_lwo_box0_fail():
 
     if sys.version_info[1] <= 7:
         return
-    assert not f.test_pickle(y)
+    assert not f.test_pickle(y, full=False)
 
 def test_load_lwo_box3():
     infile = "tests/basic/src/LWO/box/box3-uv-layers.lwo"

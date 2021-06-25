@@ -63,11 +63,27 @@ class LwoFile(object):
                     raise Exception(e)
             return self.pickle
      
-    def test_pickle(self, x):
+    def rm_pickle(self):
+        if os.path.isfile(self.picklefile):
+            os.unlink(self.picklefile)
+    
+    def test_pickle(self, x, full=True):
         if self.pickle is None:
             self.load_pickle()
             
         if self.pickle is None:
             return True
+        
+        if full:
+            for k in self.pickle:
+                if not len(self.pickle[k]) == len(x[k]):
+                    raise Exception(f"Number of {k} not matching:\n{len(self.pickle[k])}\n{len(x[k])}")
+                if not self.pickle[k] == x[k]:
+                    for j in self.pickle[k]:
+                        if not self.pickle[k][j] == x[k][j]:
+                            raise Exception(f"{k} not matching:\n\t{j}\n\t\t{self.pickle[k][j]}\n\t\t{x[k][j]}")
+                    #raise Exception(f"{k} not matching:\n{self.pickle[k]}\n{x[k]}")
+            
         return self.pickle == x
+        #return True
          
