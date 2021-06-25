@@ -23,15 +23,15 @@ class LWO1(LWOBase):
 
     def read_layr(self):
         """Read the object's layer data."""
-        bytes = self.bytes2
+        self.sbytes = self.bytes2()
         # XXX: Need to check what these two exactly mean for a LWOB/LWLO file.
         new_layr = _obj_layer()
-        new_layr.index, flags = struct.unpack(">HH", bytes[0:4])
+        new_layr.index, flags = self.unpack(">HH")
 
         self.info("Reading Object Layer")
-        offset = 4
-        layr_name, name_len = self.read_lwostring(bytes[offset:])
-        offset += name_len
+        layr_name = self.read_lwostring3()
+        
+        #offset += name_len
 
         if name_len > 2 and layr_name != "noname":
             new_layr.name = layr_name
@@ -45,26 +45,21 @@ class LWO1(LWOBase):
         Read the polygons, each one is just a list of point indexes.
         But it also includes the surface index.
         """
-        bytes = self.bytes2
+        self.sbytes = self.bytes2()
         self.info(f"    Reading Layer ({self.layers[-1].name}) Polygons")
-        offset = 0
-        chunk_len = len(bytes)
         old_pols_count = len(self.layers[-1].pols)
         poly = 0
 
-        while offset < chunk_len:
-            (pnts_count,) = struct.unpack(">H", bytes[offset : offset + 2])
-            offset += 2
+        while self.offset < len(self.sbytes):
+            (pnts_count,) = self.unpack(">H")
             all_face_pnts = []
             for j in range(pnts_count):
-                (face_pnt,) = struct.unpack(">H", bytes[offset : offset + 2])
-                offset += 2
+                (face_pnt,) = self.unpack(">H")
                 all_face_pnts.append(face_pnt)
             all_face_pnts.reverse()
 
             self.layers[-1].pols.append(all_face_pnts)
-            (sid,) = struct.unpack(">h", bytes[offset : offset + 2])
-            offset += 2
+            (sid,) = self.unpack(">h")
             sid = abs(sid) - 1
             if sid not in self.layers[-1].surf_tags:
                 self.layers[-1].surf_tags[sid] = []
@@ -75,56 +70,52 @@ class LWO1(LWOBase):
 
     def read_surf(self):
         """Read the object's surface data."""
-        bytes = self.bytes2
+        self.sbytes = self.bytes2()
         if len(self.surfs) == 0:
             self.info("Reading Object Surfaces 5")
 
         surf = _obj_surf()
-        name, name_len = self.read_lwostring(bytes)
+        name = self.read_lwostring3()
         if len(name) != 0:
             surf.name = name
 
-        offset = name_len
-        chunk_len = len(bytes)
-        while offset < chunk_len:
-            (subchunk_name,) = struct.unpack("4s", bytes[offset : offset + 4])
-            offset += 4
-            (subchunk_len,) = struct.unpack(">H", bytes[offset : offset + 2])
-            offset += 2
+        while self.offset < len(self.sbytes):
+            (subchunk_name,) = self.unpack("4s")
+            (subchunk_len,) = self.unpack(">H")
 
             # Now test which subchunk it is.
             if b"COLR" == subchunk_name:
-                color = struct.unpack(">BBBB", bytes[offset : offset + 4])
+                color = self.unpack(">BBBB")
                 surf.colr = [color[0] / 255.0, color[1] / 255.0, color[2] / 255.0]
 
             elif b"DIFF" == subchunk_name:
-                (surf.diff,) = struct.unpack(">h", bytes[offset : offset + 2])
+                (surf.diff,) = self.unpack(">h")
                 surf.diff /= 256.0  # Yes, 256 not 255.
 
             elif b"LUMI" == subchunk_name:
-                (surf.lumi,) = struct.unpack(">h", bytes[offset : offset + 2])
+                (surf.lumi,) = self.unpack(">h")
                 surf.lumi /= 256.0
 
             elif b"SPEC" == subchunk_name:
-                (surf.spec,) = struct.unpack(">h", bytes[offset : offset + 2])
+                (surf.spec,) = self.unpack(">h")
                 surf.spec /= 256.0
 
             elif b"REFL" == subchunk_name:
-                (surf.refl,) = struct.unpack(">h", bytes[offset : offset + 2])
+                (surf.refl,) = self.unpack(">h")
                 surf.refl /= 256.0
 
             elif b"TRAN" == subchunk_name:
-                (surf.tran,) = struct.unpack(">h", bytes[offset : offset + 2])
+                (surf.tran,) = self.unpack(">h")
                 surf.tran /= 256.0
 
             elif b"RIND" == subchunk_name:
-                (surf.rind,) = struct.unpack(">f", bytes[offset : offset + 4])
+                (surf.rind,) = self.unpack(">f")
 
             elif b"GLOS" == subchunk_name:
-                (surf.glos,) = struct.unpack(">h", bytes[offset : offset + 2])
+                (surf.glos,) = self.unpack(">h")
 
             elif b"SMAN" == subchunk_name:
-                (s_angle,) = struct.unpack(">f", bytes[offset : offset + 4])
+                (s_angle,) = self.unpack(">f")
                 if s_angle > 0.0:
                     surf.smooth = True
 
@@ -132,9 +123,8 @@ class LWO1(LWOBase):
                 texture = None
 
             elif b"TIMG" == subchunk_name:
-                path, path_len = self.read_lwostring(bytes[offset:])
+                path = self.read_lwostring3()
                 if path == "(none)":
-                    offset += path_len
                     continue
 
                 texture = _surf_texture_5()
@@ -146,7 +136,7 @@ class LWO1(LWOBase):
 
             elif b"TFLG" == subchunk_name:
                 if texture:
-                    (mapping,) = struct.unpack(">h", bytes[offset : offset + 2])
+                    (mapping,) = self.unpack(">h")
                     if mapping & 1:
                         texture.X = True
                     elif mapping & 2:
@@ -220,7 +210,7 @@ class LWO1(LWOBase):
             else:
                 self.error(f"Unsupported SubBlock: {subchunk_name}")
 
-            offset += subchunk_len
+            self.offset += subchunk_len
 
         self.surfs[surf.name] = surf
     

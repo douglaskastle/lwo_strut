@@ -252,14 +252,11 @@ class LWOBase:
         self.pnt_count = 0
 
         self.l = LWOLogger("LWO", loglevel)
+        self.offset = 0
 
-    @property
+    #@property
     def bytes2(self):
-#         self.debug(self.rootchunk)
-#         self.debug(self.rootchunk.getsize())
-#         self.debug(self.rootchunk.getname())
-#         self.debug(self.rootchunk.tell())
-        #self.rootchunk.seek(0)
+        self.offset = 0
         return self.rootchunk.read()
         
     def debug(self, msg):
@@ -277,6 +274,56 @@ class LWOBase:
         else:
             self.l.error(msg)
 
+    def calc_read_length(self, x):
+        #self.debug(f" {x}")
+        if "4sH" == x or ">4sH" == x:
+            y = 6
+        elif "ffff" == x or ">ffff" == x:
+            y = 16
+        elif "fff" == x or ">fff" == x:
+            y = 12
+        elif "ff" == x or ">ff" == x:
+            y = 8
+        elif "BBBB" == x or ">BBBB" == x:
+            y = 4
+        elif "fffh" == x or ">fffh" == x:
+            y = 14
+        elif "hfffh" == x or ">hfffh" == x:
+            y = 16
+        elif "ff" == x or ">ff" == x:
+            y = 8
+        elif "f" == x or ">f" == x:
+            y = 4
+        elif ">4sLL" == x:
+            y = 12
+        elif ">LL" == x:
+            y = 8
+        elif "Q" == x or ">Q" == x:
+            y = 8
+        elif "4s" == x or ">4s" == x:
+            y = 4
+        elif "I" == x or ">I" == x :
+            y = 4
+        elif "L" == x or ">L" == x :
+            y = 4
+        elif "HH" == x or ">HH" == x :
+            y = 4
+        elif "H" == x or ">H" == x :
+            y = 2
+        elif "h" == x or ">h" == x :
+            y = 2
+        elif "b" == x or ">B" == x :
+            y = 1
+        else:
+            raise
+        return y
+    
+    def unpack(self, x):
+        read_length = self.calc_read_length(x)
+        y = struct.unpack(x, self.sbytes[self.offset : self.offset + read_length])
+        self.offset += read_length
+        return y
+    
     def read_lwostring(self, raw_name):
         """Parse a zero-padded string."""
 
@@ -293,28 +340,42 @@ class LWOBase:
 
         return name, name_len
 
+    def read_lwostring3(self, length=None):
+        """Parse a zero-padded string."""
+        
+        if length is None:
+            raw_name = self.sbytes[self.offset:]
+            i = raw_name.find(b"\0")
+            name_len = i + 1
+            if name_len % 2 == 1:  # Test for oddness.
+                name_len += 1
+
+            if i > 0:
+                # Some plugins put non-text strings in the tags chunk.
+                name = raw_name[0:i].decode("utf-8", "ignore")
+            else:
+                name = ""
+
+            self.offset += name_len
+        else:
+            name = self.sbytes[self.offset:self.offset+length-1].decode("utf-8", "ignore")
+            self.offset += length
+        return name
+
     def read_tags(self):
         """Read the object's Tags chunk."""
-        bytes = self.bytes2
-        offset = 0
-        chunk_len = len(bytes)
-
-        while offset < chunk_len:
-            tag, tag_len = self.read_lwostring(bytes[offset:])
-            offset += tag_len
+        self.sbytes = self.bytes2()
+        while self.offset < len(self.sbytes):
+            tag = self.read_lwostring3()
             self.tags.append(tag)
-        self.seek += offset
 
     def read_pnts(self):
         """Read the layer's points."""
-        bytes = self.bytes2
+        self.sbytes = self.bytes2()
         self.info(f"    Reading Layer ({self.layers[-1].name }) Points")
-        offset = 0
-        chunk_len = len(bytes)
-
-        while offset < chunk_len:
-            pnts = struct.unpack(">fff", bytes[offset : offset + 12])
-            offset += 12
+        while self.offset < len(self.sbytes):
+            #pnts = struct.unpack(">fff", self.sbytes[offset : offset + 12])
+            pnts = self.unpack(">fff")
             # Re-order the points so that the mesh has the right pitch,
             # the pivot already has the correct order.
             pnts = [
