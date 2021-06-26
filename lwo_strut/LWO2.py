@@ -13,7 +13,7 @@ class LWO2(LWOBase):
         self.last_pols_count = 0
         self.just_read_bones = False
 
-    def read_vx3(self):
+    def read_vx(self):
         """Read a variable-length index."""
         pointdata = self.sbytes[self.offset : self.offset + 4]
         if 0 == len(pointdata):
@@ -33,7 +33,7 @@ class LWO2(LWOBase):
         (c_id, ) = self.unpack(">L")
         
         self.offset += 6
-        orig_path = self.read_lwostring3()
+        orig_path = self.read_lwostring()
         self.clips[c_id] = orig_path
 
     def read_layr(self):
@@ -49,7 +49,7 @@ class LWO2(LWOBase):
         pivot = self.unpack(">fff")
         # Swap Y and Z to match Blender's pitch.
         new_layr.pivot = [pivot[0], pivot[2], pivot[1]]
-        layr_name = self.read_lwostring3()
+        layr_name = self.read_lwostring()
 
         if layr_name:
             new_layr.name = layr_name
@@ -65,11 +65,11 @@ class LWO2(LWOBase):
         """Read a weight map's values."""
         self.sbytes = self.bytes2()
         self.offset += 2
-        name = self.read_lwostring3()
+        name = self.read_lwostring()
         weights = []
 
         while self.offset < len(self.sbytes):
-            pnt_id = self.read_vx3()
+            pnt_id = self.read_vx()
             (value,) = self.unpack(">f")
             weights.append([pnt_id, value])
 
@@ -79,11 +79,11 @@ class LWO2(LWOBase):
         """Read an endomorph's relative or absolute displacement values."""
         self.sbytes = self.bytes2()
         self.offset += 2
-        name = self.read_lwostring3()
+        name = self.read_lwostring()
         deltas = []
 
         while self.offset < len(self.sbytes):
-            pnt_id = self.read_vx3()
+            pnt_id = self.read_vx()
             pos = self.unpack(">fff")
             pnt = self.layers[-1].pnts[pnt_id]
 
@@ -101,17 +101,17 @@ class LWO2(LWOBase):
         """Read the RGB or RGBA color map."""
         self.sbytes = self.bytes2()
         (dia,) = self.unpack(">H")
-        name = self.read_lwostring3()
+        name = self.read_lwostring()
         colors = {}
 
         if dia == 3:
             while self.offset < len(self.sbytes):
-                pnt_id = self.read_vx3()
+                pnt_id = self.read_vx()
                 col = self.unpack(">fff")
                 colors[pnt_id] = (col[0], col[1], col[2])
         elif dia == 4:
             while self.offset < len(self.sbytes):
-                pnt_id = self.read_vx3()
+                pnt_id = self.read_vx()
                 col = self.unpack(">ffff")
                 colors[pnt_id] = (col[0], col[1], col[2])
 
@@ -127,11 +127,11 @@ class LWO2(LWOBase):
         """Read vertex normal maps."""
         self.sbytes = self.bytes2()
         self.offset += 2
-        name = self.read_lwostring3()
+        name = self.read_lwostring()
         vnorms = {}
 
         while self.offset < len(self.sbytes):
-            pnt_id = self.read_vx3()
+            pnt_id = self.read_vx()
             norm = self.unpack(">fff")
             vnorms[pnt_id] = [norm[0], norm[2], norm[1]]
 
@@ -141,14 +141,14 @@ class LWO2(LWOBase):
         """Read the Discontinuous (per-polygon) RGB values."""
         self.sbytes = self.bytes2()
         (dia,) = self.unpack(">H")
-        name = self.read_lwostring3()
+        name = self.read_lwostring()
         colors = {}
         abs_pid = len(self.layers[-1].pols) - self.last_pols_count
 
         if dia == 3:
             while self.offset < len(self.sbytes):
-                pnt_id = self.read_vx3()
-                pol_id = self.read_vx3()
+                pnt_id = self.read_vx()
+                pol_id = self.read_vx()
 
                 # The PolyID in a VMAD can be relative, this offsets it.
                 pol_id += abs_pid
@@ -159,8 +159,8 @@ class LWO2(LWOBase):
                     colors[pol_id] = dict({pnt_id: (col[0], col[1], col[2])})
         elif dia == 4:
             while self.offset < len(self.sbytes):
-                pnt_id = self.read_vx3()
-                pol_id = self.read_vx3()
+                pnt_id = self.read_vx()
+                pol_id = self.read_vx()
 
                 pol_id += abs_pid
                 col = self.unpack(">ffff")
@@ -181,11 +181,11 @@ class LWO2(LWOBase):
         """Read the simple UV coord values."""
         self.sbytes = self.bytes2()
         self.offset += 2
-        name = self.read_lwostring3()
+        name = self.read_lwostring()
         uv_coords = {}
 
         while self.offset < len(self.sbytes):
-            pnt_id = self.read_vx3()
+            pnt_id = self.read_vx()
             pos = self.unpack(">ff")
             uv_coords[pnt_id] = (pos[0], pos[1])
 
@@ -201,13 +201,13 @@ class LWO2(LWOBase):
         """Read the Discontinuous (per-polygon) uv values."""
         self.sbytes = self.bytes2()
         self.offset += 2
-        name = self.read_lwostring3()
+        name = self.read_lwostring()
         uv_coords = {}
         abs_pid = len(self.layers[-1].pols) - self.last_pols_count
 
         while self.offset < len(self.sbytes):
-            pnt_id = self.read_vx3()
-            pol_id = self.read_vx3()
+            pnt_id = self.read_vx()
+            pol_id = self.read_vx()
 
             pol_id += abs_pid
             pos = self.unpack(">ff")
@@ -228,7 +228,7 @@ class LWO2(LWOBase):
         """Read the VMAD Weight values."""
         self.sbytes = self.bytes2()
         self.offset += 2
-        name = self.read_lwostring3()
+        name = self.read_lwostring()
         if name != "Edge Weight":
             return  # We just want the Catmull-Clark edge weights
 
@@ -237,8 +237,8 @@ class LWO2(LWOBase):
         # when it comes to storing CC edge weight values. The weight is given
         # to the point preceding the edge that the weight belongs to.
         while self.offset < len(self.sbytes):
-            pnt_id = self.read_vx3()
-            pol_id = self.read_vx3()
+            pnt_id = self.read_vx()
+            pol_id = self.read_vx()
             (weight,) = struct.unpack(">f")
 
             face_pnts = self.layers[-1].pols[pol_id]
@@ -260,12 +260,12 @@ class LWO2(LWOBase):
         """Read the VMAD Split Vertex Normals"""
         self.sbytes = self.bytes2()
         self.offset += 2
-        name = self.read_lwostring3()
+        name = self.read_lwostring()
         lnorms = {}
 
         while self.offset < len(self.sbytes):
-            pnt_id = self.read_vx3()
-            pol_id = self.read_vx3()
+            pnt_id = self.read_vx()
+            pol_id = self.read_vx()
             norm = self.unpack(">fff")
             if not (pol_id in lnorms.keys()):
                 lnorms[pol_id] = []
@@ -285,7 +285,7 @@ class LWO2(LWOBase):
             (pnts_count,) = self.unpack(">H")
             all_face_pnts = []
             for j in range(pnts_count):
-                face_pnt = self.read_vx3()
+                face_pnt = self.read_vx()
                 all_face_pnts.append(face_pnt)
             all_face_pnts.reverse()  # correct normals
 
@@ -302,7 +302,7 @@ class LWO2(LWOBase):
             (pnts_count,) = self.unpack(">H")
             all_bone_pnts = []
             for j in range(pnts_count):
-                bone_pnt = self.read_vx3()
+                bone_pnt = self.read_vx()
                 all_bone_pnts.append(bone_pnt)
 
             self.layers[-1].bones.append(all_bone_pnts)
@@ -319,7 +319,7 @@ class LWO2(LWOBase):
             return
 
         while self.offset < len(self.sbytes):
-            pid = self.read_vx3()
+            pid = self.read_vx()
             (tid,) = self.unpack(">H")
             bone_dict[pid] = self.tags[tid]
 
@@ -339,7 +339,7 @@ class LWO2(LWOBase):
             elif b"FALL" == subsubchunk_name:
                 p.fall = self.unpack(">hfffh")
             elif b"OREF" == subsubchunk_name:
-                p.oref = self.read_lwostring3()
+                p.oref = self.read_lwostring()
             elif b"CSYS" == subsubchunk_name:
                 (p.csys,) = self.unpack(">h")
             self.offset = self.skip
@@ -367,9 +367,9 @@ class LWO2(LWOBase):
             elif b"PROJ" == subsubchunk_name:
                 (texture.projection,) = self.unpack(">H")
             elif b"VMAP" == subsubchunk_name:
-                texture.uvname = self.read_lwostring3()
+                texture.uvname = self.read_lwostring()
             elif b"FUNC" == subsubchunk_name:  # This is the procedural
-                texture.func = self.read_lwostring3()
+                texture.func = self.read_lwostring()
             elif b"NEGA" == subsubchunk_name:
                 (texture.nega,) = self.unpack(">H")
             elif b"AXIS" == subsubchunk_name:
@@ -431,7 +431,7 @@ class LWO2(LWOBase):
                 len(self.layers[-1].pols), self.last_pols_count, self.layers[-1].pols
             )
         while self.offset < len(self.sbytes):
-            pid = self.read_vx3()
+            pid = self.read_vx()
             (sid,) = self.unpack(">H")
             if sid not in self.layers[-1].surf_tags:
                 self.layers[-1].surf_tags[sid] = []
@@ -444,11 +444,11 @@ class LWO2(LWOBase):
             self.info("Reading Object Surfaces")
 
         surf = _obj_surf()
-        name = self.read_lwostring3()
+        name = self.read_lwostring()
         if len(name) != 0:
             surf.name = name
 
-        s_name = self.read_lwostring3()
+        s_name = self.read_lwostring()
         
         while self.offset < len(self.sbytes) :
             subchunk_name, subchunk_len = self.read_lwohead()

@@ -29,7 +29,7 @@ class LWO1(LWOBase):
         new_layr.index, flags = self.unpack(">HH")
 
         self.info("Reading Object Layer")
-        layr_name = self.read_lwostring3()
+        layr_name = self.read_lwostring()
         
         #offset += name_len
 
@@ -75,7 +75,7 @@ class LWO1(LWOBase):
             self.info("Reading Object Surfaces 5")
 
         surf = _obj_surf()
-        name = self.read_lwostring3()
+        name = self.read_lwostring()
         if len(name) != 0:
             surf.name = name
 
@@ -122,7 +122,7 @@ class LWO1(LWOBase):
                 texture = None
 
             elif b"TIMG" == subchunk_name:
-                path = self.read_lwostring3()
+                path = self.read_lwostring()
                 if path == "(none)":
                     continue
 

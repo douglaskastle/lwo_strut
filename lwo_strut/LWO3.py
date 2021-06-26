@@ -127,14 +127,14 @@ class LWO3(LWO2):
 
         self.offset += 8
         
-        name = self.read_lwostring3()
+        name = self.read_lwostring()
 
         surf = _obj_surf3()
         if not 0 == len(name):
             surf.name = name
         self.debug(f"Surf {surf.name}")
 
-        s_name = self.read_lwostring3()
+        s_name = self.read_lwostring()
         #self.debug(f"Surf {s_name}")
         
         block = self.read_block()
@@ -190,18 +190,18 @@ class LWO3(LWO2):
 #                 pass
 #             elif b"NSRV" == subchunk_name:
 #                 (length, ) = self.unpack(">I")
-#                # yy = self.read_lwostring3(length)
-#                 s = self.read_lwostring3()
+#                # yy = self.read_lwostring(length)
+#                 s = self.read_lwostring()
 #                 self.debug(f"Surf {subchunk_name} {s}")
 #             elif b"NTAG" == subchunk_name:
 #                 pass
 #             elif b"NRNM" == subchunk_name:
 #                 (length, ) = self.unpack(">I")
-#                 s = self.read_lwostring3()
+#                 s = self.read_lwostring()
 #                 self.debug(f"Surf {subchunk_name} {s}")
 #             elif b"NNME" == subchunk_name:
 #                 (length, ) = self.unpack(">I")
-#                 s = self.read_lwostring3()
+#                 s = self.read_lwostring()
 #                 self.debug(f"Surf {subchunk_name} {s}")
 #             elif b"NCRD" == subchunk_name:
 #                 self.unpack("fff")

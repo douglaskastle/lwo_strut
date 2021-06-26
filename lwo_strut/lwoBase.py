@@ -330,7 +330,7 @@ class LWOBase:
         self.skip = self.offset + length
         return name, length
     
-    def read_lwostring3(self, length=None):
+    def read_lwostring(self, length=None):
         """Parse a zero-padded string."""
         
         if length is None:
@@ -357,7 +357,7 @@ class LWOBase:
         """Read the object's Tags chunk."""
         self.sbytes = self.bytes2()
         while self.offset < len(self.sbytes):
-            tag = self.read_lwostring3()
+            tag = self.read_lwostring()
             self.tags.append(tag)
 
     def read_pnts(self):
