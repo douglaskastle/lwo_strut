@@ -6,12 +6,12 @@ from scripts.lwo_helper import LwoFile
 
 
 def main():
-    infiles = [
-        "tests/basic/src/LWO2/box/box0.lwo",
-        "tests/basic/src/LWO2/box/box6-hidden.lwo",
-        "tests/basic/src/LWO/box/box3-uv-layers.lwo",
-        "tests/lwo_interceptor/src/LWO2/Federation - Interceptor/objects/interceptor_hull.lwo",
-        "/home/gomez/project/blender-import-lwo/tests/lwo_nasa/src/ISS (High Res)/Objects/Modules/express ELC/ELC2.lwo",
+    infiles = [ 
+#         "tests/basic/src/LWO2/box/box0.lwo",
+#         "tests/basic/src/LWO2/box/box6-hidden.lwo",
+#         "tests/basic/src/LWO/box/box3-uv-layers.lwo",
+#         "tests/lwo_interceptor/src/LWO2/Federation - Interceptor/objects/interceptor_hull.lwo",
+#         "/home/gomez/project/blender-import-lwo/tests/lwo_nasa/src/ISS (High Res)/Objects/Modules/express ELC/ELC2.lwo",
     ]
     for infile in infiles:
         f = LwoFile(infile, create_pickle=True)
@@ -33,6 +33,27 @@ def main():
         b = f.load_pickle()
     
         #print(x == b)
+    infiles = [
+        "tests/bulk/ELC2.lwo",
+        "tests/bulk/Violator.lwo",
+        "tests/bulk/tcs-p-ani-layers.lwo",
+        "tests/bulk/uss-defiant.lwo",
+    ]
+    for infile in infiles:
+        f = LwoFile(infile, create_pickle=True)
+        f.check_file()
+    
+        x = lwoObject(infile)
+        x.ch.search_paths = ["../images"]
+        x.absfilepath = False
+        x.read()
+    
+        #print(f.picklefile)
+        f.rm_pickle()
+        
+        f.setup_pickle(x.elements)
+    
+        b = f.load_pickle()
 
 
     infile = "tests/basic/src/LWO2/box/box0.lwo"

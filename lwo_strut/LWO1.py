@@ -33,7 +33,7 @@ class LWO1(LWOBase):
         
         #offset += name_len
 
-        if name_len > 2 and layr_name != "noname":
+        if self.chunklength > 2 and layr_name != "noname":
             new_layr.name = layr_name
         else:
             new_layr.name = f"Layer {new_layr.index}"

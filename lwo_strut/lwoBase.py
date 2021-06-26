@@ -355,12 +355,13 @@ class LWOBase:
                 name = raw_name[0:i].decode("utf-8", "ignore")
             else:
                 name = ""
-
-            self.offset += name_len
         else:
-            name = self.sbytes[self.offset:self.offset+length-1].decode("utf-8", "ignore")
-            self.offset += length
-        return name
+            name_len = length
+            name = self.sbytes[self.offset:self.offset+name_len-1].decode("utf-8", "ignore")
+        self.offset += name_len
+        self.chunkname  = name
+        self.chunklength = name_len
+        return self.chunkname
 
     def read_tags(self):
         """Read the object's Tags chunk."""

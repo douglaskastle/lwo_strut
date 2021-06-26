@@ -338,58 +338,58 @@ class LWO2(LWOBase):
 
     def read_position(self, subchunk_len):
         p = _surf_position()
-        
-        total_length = self.offset+subchunk_len
-        
-        while self.offset < total_length:
-            (subsubchunk_name,) = self.unpack("4s",)
-            (slen,) = self.unpack(">H")
-            
-            skip = self.offset + slen 
+
+        length = self.offset + subchunk_len
+        while self.offset < length:
+            (subsubchunk_name,) = self.unpack("4s")
+            (subsubchunk_len,) = self.unpack(">H")
+            #skip = self.offset + subsubchunk_len
 
             if b"CNTR" == subsubchunk_name:
                 p.cntr = self.unpack(">fffh")
-                if 20 == slen:
-                    self.error(f"re examine")  
-                    _ = struct.unpack(">hf", self.sbytes[self.offset + 14 : self.offset + slen])
+                if 20 == subsubchunk_len:
+                    self.offset += 6
+                    _ = struct.unpack(">hf", self.sbytes[offset + suboffset + 14 : offset + suboffset + subsubchunk_len])
+                    raise
             elif b"SIZE" == subsubchunk_name:
                 p.size = self.unpack(">fffh")
-                if 20 == slen:
-                    _ = struct.unpack(">hf", self.sbytes[self.offset + 14 : self.offset + slen])
+                if 20 == subsubchunk_len:
+                    self.offset += 6
+                    _ = struct.unpack(">hf", self.sbytes[offset + suboffset + 14 : offset + suboffset + subsubchunk_len])
+                    raise
             elif b"ROTA" == subsubchunk_name:
-                p.rota = self.unpack(">fffh")
-                if 20 == slen:
-                    _ = struct.unpack(">hf", self.sbytes[self.offset + 14 : self.offset + slen])
+                p.rota = self.unpack(">fffh" )
+                if 20 == subsubchunk_len:
+                    self.offset += 6
+                    _ = struct.unpack(">hf", self.sbytes[offset + suboffset + 14 : offset + suboffset + subsubchunk_len])
+                    raise
             elif b"FALL" == subsubchunk_name:
                 p.fall = self.unpack(">hfffh")
             elif b"OREF" == subsubchunk_name:
                 p.oref = self.read_lwostring3()
             elif b"CSYS" == subsubchunk_name:
                 (p.csys,) = self.unpack(">h")
-            else:
-                self.error(f"Unsupported SubSubBlock: {subsubchunk_name}")  
-                self.offset = skip
-                
+            #self.offset = skip
         return p
 
-    def read_texture(self, subchunk_len, num = 0):
+    def read_texture(self, subchunk_len):
         texture = _surf_texture()
-        #self.offset += 2
         
-        while self.offset < subchunk_len:
+        length = self.offset + subchunk_len
+        while self.offset < length:
             (subsubchunk_name,) = self.unpack("4s")
             (subsubchunk_len,) = self.unpack(">H")
-            skip = self.offset + subsubchunk_len 
-                        
+            skip = self.offset + subsubchunk_len
+            
             if b"TMAP" == subsubchunk_name:
                 texture.position = self.read_position(subsubchunk_len)
+                self.offset = skip
             elif b"CHAN" == subsubchunk_name:
                 (texture.channel,) = self.unpack("4s")
                 texture.channel = texture.channel.decode("ascii")
             elif b"OPAC" == subsubchunk_name:
                 (texture.opactype,) = self.unpack(">H")
-                (texture.opac,) = self.unpack(">f" )
-                self.offset += 2
+                (texture.opac,) = self.unpack(">f")
             elif b"ENAB" == subsubchunk_name:
                 (texture.enab,) = self.unpack(">H")
             elif b"IMAG" == subsubchunk_name:
@@ -405,39 +405,61 @@ class LWO2(LWOBase):
             elif b"AXIS" == subsubchunk_name:
                 (texture.axis,) = self.unpack(">H")
             elif b"WRAP" == subsubchunk_name:
-                self.debug(f"Unimplemented SubSubBlock: {subsubchunk_name} {subchunk_len}")                 
+                self.debug(f"Unimplemented SubSubBlock: {subsubchunk_name}")                 
+                self.offset = skip                                
             elif b"WRPW" == subsubchunk_name:
                 self.debug(f"Unimplemented SubSubBlock: {subsubchunk_name}")                                
+                self.offset = skip                                
             elif b"WRPH" == subsubchunk_name:
                 self.debug(f"Unimplemented SubSubBlock: {subsubchunk_name}")                                
+                self.offset = skip                                
             elif b"AAST" == subsubchunk_name:
                 self.debug(f"Unimplemented SubSubBlock: {subsubchunk_name}")                                
+                self.offset = skip                                
             elif b"PIXB" == subsubchunk_name:
                 self.debug(f"Unimplemented SubSubBlock: {subsubchunk_name}")                                
+                self.offset = skip                                
             elif b"VALU" == subsubchunk_name:
                 self.debug(f"Unimplemented SubSubBlock: {subsubchunk_name}")                                
+                self.offset = skip                                
             elif b"TAMP" == subsubchunk_name:
                 self.debug(f"Unimplemented SubSubBlock: {subsubchunk_name}")                                
+                self.offset = skip                                
             elif b"STCK" == subsubchunk_name:
                 self.debug(f"Unimplemented SubSubBlock: {subsubchunk_name}")                                
+                self.offset = skip                                
             elif b"PNAM" == subsubchunk_name:
                 self.debug(f"Unimplemented SubSubBlock: {subsubchunk_name}")                                
+                self.offset = skip                                
             elif b"INAM" == subsubchunk_name:
                 self.debug(f"Unimplemented SubSubBlock: {subsubchunk_name}")                                
+                self.offset = skip                                
             elif b"GRST" == subsubchunk_name:
                 self.debug(f"Unimplemented SubSubBlock: {subsubchunk_name}")                                
+                self.offset = skip                                
             elif b"GREN" == subsubchunk_name:
                 self.debug(f"Unimplemented SubSubBlock: {subsubchunk_name}")                                
+                self.offset = skip                                
             elif b"GRPT" == subsubchunk_name:
                 self.debug(f"Unimplemented SubSubBlock: {subsubchunk_name}")                                
+                self.offset = skip                                
             elif b"IKEY" == subsubchunk_name:
                 self.debug(f"Unimplemented SubSubBlock: {subsubchunk_name}")                                
+                self.offset = skip                                
             elif b"FKEY" == subsubchunk_name:
                 self.debug(f"Unimplemented SubSubBlock: {subsubchunk_name}")                                
+                self.offset = skip                                
             elif b"GVER" == subsubchunk_name:
                 self.debug(f"Unimplemented SubSubBlock: {subsubchunk_name}")                                
+                self.offset = skip
+            elif b"BLOK" == subsubchunk_name:
+                self.debug(f"Unimplemented SubSubBlock: {subsubchunk_name}")                                
+                self.offset = skip
             else:
                 self.error(f"Unsupported SubSubBlock: {subsubchunk_name}")  
+                self.offset = skip
+            if not self.offset == skip:
+                self.debug(f"Skip issue: {subsubchunk_name} {self.offset} {skip}")                                
             self.offset = skip
 
         return texture
@@ -526,6 +548,8 @@ class LWO2(LWOBase):
                 (surf.bump,) = self.unpack(">f")
 
             elif b"BLOK" == subchunk_name:
+                
+                #print(self.sbytes[self.offset : self.offset + 16])
                 (block_type,) = self.unpack("4s")
                 (num,) = self.unpack(">H")
                 texture = None
@@ -535,12 +559,11 @@ class LWO2(LWOBase):
                     or b"SHDR" == block_type
                     or b"GRAD" == block_type
                 ):
-                    delta = 0
-                    if 44 == num: # FIXME, don't know why this hack is needed
-                        delta = 2
                     self.offset += 2
-                    
-                    texture = self.read_texture(subchunk_len)
+                    if 44 == num:
+                        self.offset += 2
+                    #print(block_type, num)
+                    texture = self.read_texture(subchunk_len-8)
                 else:
                     self.error(f"Unimplemented texture type: {block_type}")
                 
