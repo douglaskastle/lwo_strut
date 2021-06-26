@@ -324,22 +324,12 @@ class LWOBase:
         self.offset += read_length
         return y
     
-    def read_lwostring(self, raw_name):
-        """Parse a zero-padded string."""
-
-        i = raw_name.find(b"\0")
-        name_len = i + 1
-        if name_len % 2 == 1:  # Test for oddness.
-            name_len += 1
-
-        if i > 0:
-            # Some plugins put non-text strings in the tags chunk.
-            name = raw_name[0:i].decode("utf-8", "ignore")
-        else:
-            name = ""
-
-        return name, name_len
-
+    def read_lwohead(self):
+        (name,) = self.unpack("4s")
+        (length,) = self.unpack(">H")
+        self.skip = self.offset + length
+        return name, length
+    
     def read_lwostring3(self, length=None):
         """Parse a zero-padded string."""
         

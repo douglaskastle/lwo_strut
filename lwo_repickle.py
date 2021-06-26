@@ -7,11 +7,10 @@ from scripts.lwo_helper import LwoFile
 
 def main():
     infiles = [ 
-#         "tests/basic/src/LWO2/box/box0.lwo",
-#         "tests/basic/src/LWO2/box/box6-hidden.lwo",
-#         "tests/basic/src/LWO/box/box3-uv-layers.lwo",
-#         "tests/lwo_interceptor/src/LWO2/Federation - Interceptor/objects/interceptor_hull.lwo",
-#         "/home/gomez/project/blender-import-lwo/tests/lwo_nasa/src/ISS (High Res)/Objects/Modules/express ELC/ELC2.lwo",
+        "tests/basic/src/LWO2/box/box0.lwo",
+        "tests/basic/src/LWO2/box/box6-hidden.lwo",
+        "tests/basic/src/LWO/box/box3-uv-layers.lwo",
+        "tests/lwo_interceptor/src/LWO2/Federation - Interceptor/objects/interceptor_hull.lwo",
     ]
     for infile in infiles:
         f = LwoFile(infile, create_pickle=True)
@@ -38,6 +37,7 @@ def main():
         "tests/bulk/Violator.lwo",
         "tests/bulk/tcs-p-ani-layers.lwo",
         "tests/bulk/uss-defiant.lwo",
+        "tests/bulk/arrow.lwo",
     ]
     for infile in infiles:
         f = LwoFile(infile, create_pickle=True)
