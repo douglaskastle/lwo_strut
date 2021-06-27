@@ -16,6 +16,7 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
+import re
 import chunk
 import struct
 import logging
@@ -23,6 +24,25 @@ from pprint import pprint
 from collections import OrderedDict
 
 from .lwoLogger import LWOLogger
+
+def calc_read_length(x):
+    z = 0
+    h = re.findall(r"(\d?)(\w)", x.lower())
+    for g in h:
+        if '' == g[0]:
+            i = 1
+        else:
+            i = int(g[0])
+        j = g[1]
+        if 'b' == j or 's' == j:
+            z += i*1
+        elif 'h' == j:
+            z += i*2
+        elif 'f' == j or 'l' == j or 'i' == j:
+            z += i*4
+        elif 'q' == j:
+            z += i*8
+    return z
 
 
 class _lwo_base:
@@ -231,6 +251,12 @@ class _surf_texture(_lwo_base):
         print(f"Image:          {self.image}")
         print()
 
+class LWOBlock:
+    def __init__(self, name, length, offset):
+        self.name = name
+        self.length = length
+        self.offset = offset
+        self.skip = self.offset + length
 
 class LWOBase:
     def __init__(self, filename=None, loglevel=logging.INFO):
@@ -273,53 +299,9 @@ class LWOBase:
             raise Exception(f"{self.filename} {msg}")
         else:
             self.l.error(msg)
-
-    def calc_read_length(self, x):
-        #self.debug(f" {x}")
-        if "4sH" == x or ">4sH" == x:
-            y = 6
-        elif "ffff" == x or ">ffff" == x:
-            y = 16
-        elif "fff" == x or ">fff" == x:
-            y = 12
-        elif "ff" == x or ">ff" == x:
-            y = 8
-        elif "BBBB" == x or ">BBBB" == x:
-            y = 4
-        elif "fffh" == x or ">fffh" == x:
-            y = 14
-        elif "hfffh" == x or ">hfffh" == x:
-            y = 16
-        elif "ff" == x or ">ff" == x:
-            y = 8
-        elif "f" == x or ">f" == x:
-            y = 4
-        elif ">4sLL" == x:
-            y = 12
-        elif ">LL" == x:
-            y = 8
-        elif "Q" == x or ">Q" == x:
-            y = 8
-        elif "4s" == x or ">4s" == x:
-            y = 4
-        elif "I" == x or ">I" == x :
-            y = 4
-        elif "L" == x or ">L" == x :
-            y = 4
-        elif "HH" == x or ">HH" == x :
-            y = 4
-        elif "H" == x or ">H" == x :
-            y = 2
-        elif "h" == x or ">h" == x :
-            y = 2
-        elif "b" == x or ">B" == x :
-            y = 1
-        else:
-            raise
-        return y
-    
+ 
     def unpack(self, x):
-        read_length = self.calc_read_length(x)
+        read_length = calc_read_length(x)
         y = struct.unpack(x, self.sbytes[self.offset : self.offset + read_length])
         self.offset += read_length
         return y
@@ -327,8 +309,8 @@ class LWOBase:
     def read_lwohead(self):
         (name,) = self.unpack("4s")
         (length,) = self.unpack(">H")
-        self.skip = self.offset + length
-        return name, length
+        b = LWOBlock(name, length, self.offset)
+        return b
     
     def read_lwostring(self, length=None):
         """Parse a zero-padded string."""
