@@ -31,8 +31,6 @@ class LWO1(LWOBase):
         self.info("Reading Object Layer")
         layr_name = self.read_lwostring()
         
-        #offset += name_len
-
         if self.chunklength > 2 and layr_name != "noname":
             new_layr.name = layr_name
         else:
@@ -112,6 +110,7 @@ class LWO1(LWOBase):
 
             elif b"GLOS" == b.name:
                 (surf.glos,) = self.unpack(">h")
+                surf.glos /= 256.0
 
             elif b"SMAN" == b.name:
                 (s_angle,) = self.unpack(">f")
@@ -209,8 +208,7 @@ class LWO1(LWOBase):
             else: # pragma: no cover
                 self.error(f"Unsupported SubBlock: {b.name}")
 
-            self.offset += b.length
-            #self.offset = b.skip
+            self.offset = b.skip
 
         self.surfs[surf.name] = surf
     
