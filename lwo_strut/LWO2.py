@@ -574,7 +574,25 @@ class LWO2(LWOBase):
         self.surfs[surf.name] = surf
 
     def mapping_tags(self):
-        if b"TAGS" == self.chunkname:
+        if b"FORM" == self.chunkname:
+            (tag_type,) = self.unpack("4s")
+            if tag_type == b"SURF":
+                self.read_surf()
+            elif tag_type == b"CLIP":
+                self.offset += 4
+                self.read_clip()
+            else:
+                self.error(f"Unsupported tag_type: {tag_type}")
+                self.rootchunk.skip()
+        elif b"OTAG" == self.chunkname:
+            #print(self.bytes[self.offset:])
+            self.debug(f"Unimplemented Chunk: {self.chunkname}")  
+            (otag_type,) = self.unpack("4s")
+            s = self.read_lwostring()
+            self.debug(f"{otag_type} {s}")  
+            self.rootchunk.skip()
+
+        elif b"TAGS" == self.chunkname:
             self.read_tags()
         elif b"LAYR" == self.chunkname:
             self.read_layr()
@@ -670,7 +688,10 @@ class LWO2(LWOBase):
             elif tag_type == b"BONE":
                 self.read_bone_tags("BONE")
             elif tag_type == b"COLR":  # pragma: no cover
-                self.debug(f"Unimplemented tag_type: {tag_type}") 
+                #print(self.bytes[self.offset-4:self.offset+12])
+                (r, g, b) = self.unpack(">fff")
+                #print(r, g, b)
+                self.debug(f"Unimplemented tag_type: xx {tag_type}") 
                 self.rootchunk.skip()
             elif tag_type == b"PART":   # pragma: no cover
                 self.debug(f"Unimplemented tag_type: {tag_type}")
@@ -703,13 +724,6 @@ class LWO2(LWOBase):
                 self.debug(f"Unimplemented tag_type: {tag_type}")  
                 self.rootchunk.skip()
             else:  # pragma: no cover
-                self.error(f"Unsupported tag_type: {tag_type}")
-                self.rootchunk.skip()
-        elif b"FORM" == self.chunkname:
-            (tag_type,) = self.unpack("4s")
-            if tag_type == b"SURF":
-                self.read_surf()
-            else:
                 self.error(f"Unsupported tag_type: {tag_type}")
                 self.rootchunk.skip()
         elif b"SURF" == self.chunkname:

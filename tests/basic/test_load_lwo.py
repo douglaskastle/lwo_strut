@@ -52,3 +52,57 @@ def test_load_lwo_box6():
 
     assert f.test_pickle(y)
 
+def test_load_lwo3_box0():
+    infile = "tests/basic/src/LWO3/box/box0.lwo"
+    f = LwoFile(infile)
+    f.check_file()
+
+    x = lwoObject(infile)
+    x.read()
+    y = x.elements
+
+    assert f.test_pickle(y)
+
+def test_load_lwo3_box1():
+    infile = "tests/basic/src/LWO3/box/box1.lwo"
+    f = LwoFile(infile)
+    f.check_file()
+
+    x = lwoObject(infile)
+    x.read()
+    y = x.elements
+
+    assert f.test_pickle(y)
+
+def test_load_lwo3_box2():
+    infile = "tests/basic/src/LWO3/box/box2-uv.lwo"
+    f = LwoFile(infile)
+    f.check_file()
+
+    x = lwoObject(infile)
+    x.read()
+    x.ch.search_paths = ["."]
+    x.ch.recursive = True
+    x.absfilepath = False
+    x.resolve_clips()
+    x.validate_lwo()
+    y = x.elements
+
+    assert f.test_pickle(y)
+
+def test_load_lwo3_box3():
+    infile = "tests/basic/src/LWO3/box/box3-uv-layers.lwo"
+    f = LwoFile(infile)
+    f.check_file()
+
+    x = lwoObject(infile)
+    x.read()
+    x.ch.search_paths = ["."]
+    x.ch.recursive = True
+    x.absfilepath = False
+    x.resolve_clips()
+    x.validate_lwo()
+    y = x.elements
+
+    assert f.test_pickle(y)
+

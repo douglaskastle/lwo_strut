@@ -11,6 +11,7 @@ def main():
         "tests/basic/src/LWO2/box/box6-hidden.lwo",
         "tests/basic/src/LWO/box/box3-uv-layers.lwo",
         "tests/lwo_interceptor/src/LWO2/Federation - Interceptor/objects/interceptor_hull.lwo",
+        "tests/lwo_interceptor/src/LWO3/Federation - Interceptor/objects/interceptor_hull.lwo",
     ]
     for infile in infiles:
         f = LwoFile(infile, create_pickle=True)
@@ -19,6 +20,31 @@ def main():
         x = lwoObject(infile)
         x.ch.search_paths = ["../images"]
         #x.ch.recursive = True
+        x.absfilepath = False
+        x.read()
+        x.resolve_clips()
+        x.validate_lwo()
+    
+        #print(f.picklefile)
+        f.rm_pickle()
+        
+        f.setup_pickle(x.elements)
+    
+        b = f.load_pickle()
+    
+    infiles = [ 
+        "tests/basic/src/LWO3/box/box0.lwo",
+        "tests/basic/src/LWO3/box/box1.lwo",
+        "tests/basic/src/LWO3/box/box2-uv.lwo",
+        "tests/basic/src/LWO3/box/box3-uv-layers.lwo",
+    ]
+    for infile in infiles:
+        f = LwoFile(infile, create_pickle=True)
+        f.check_file()
+    
+        x = lwoObject(infile)
+        x.ch.search_paths = ["."]
+        x.ch.recursive = True
         x.absfilepath = False
         x.read()
         x.resolve_clips()

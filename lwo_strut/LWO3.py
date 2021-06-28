@@ -25,6 +25,10 @@ CMAP = {
     b'IONM' : ">I",
     b'SSHN' : ">I",
     b'ENUM' : ">II",
+    
+    b'SMAN' : ">If",
+    b'SIDE' : ">IH",
+    b'NSEL' : ">I",
 }
 
 class _obj_surf3(_lwo_base):
@@ -67,7 +71,9 @@ class _obj_surf3(_lwo_base):
         self.shrp = 0.0  # Diffuse Sharpness
         self.bump = 1.0  # Bump
         self.strs = 0.0  # Smooth Threshold
+        self.angle = 0.0  # Surface Smoothing
         self.smooth = False  # Surface Smoothing
+        self.side = 0
         self.textures = {}
         self.nodes = []
 
@@ -228,6 +234,16 @@ class LWO3(LWO2):
             
         return b
     
+    def read_clip(self):
+        """Read texture clip path"""
+        (num, c_id) = self.unpack(">II")
+        
+        b = self.read_block()
+        self.offset += 8
+        orig_path = self.read_lwostring()
+        self.clips[c_id] = orig_path
+        self.offset = b.skip
+
     def read_node_root(self, length):
         t = _obj_nodeRoot3()
         slength = self.offset + length
@@ -266,6 +282,9 @@ class LWO3(LWO2):
                 t.comment = self.read_lwostring()
             elif b"NPLA" == b.name: # Placement
                 (t.placement, ) = self.unpack(">I")
+            elif b"NSEL" == b.name: # Placement
+                #(t.placement, ) = self.unpack(">I")
+                pass
             else:  # pragma: no cover 
                 self.error(f"Unsupported Block: {b.name}")    
             self.offset = b.skip1
@@ -279,7 +298,7 @@ class LWO3(LWO2):
         while self.offset < slength:
             b = self.read_block()
             if b"NSRV" == b.name: # Server
-                t.name= self.read_lwostring()
+                t.name = self.read_lwostring()
             elif b"NTAG" == b.name: # Node Tags
                 t.tag = self.read_node_tags(b.length)
             else:  # pragma: no cover 
@@ -395,6 +414,12 @@ class LWO3(LWO2):
                 nodes.append(n)
             elif b"SSHA" == b.name:
                 self.read_shader(b.length)
+            elif b"SMAN" == b.name:
+                surf.angle = b.values[1]
+                if surf.angle > 0.0:
+                    surf.smooth = True
+            elif b"SIDE" == b.name:
+                self.side = b.values[1]
             else:  # pragma: no cover 
                 self.error(f"Unsupported Block: {b.name}")    
                 print(b.name, b.length)
@@ -405,6 +430,18 @@ class LWO3(LWO2):
         
         #print(len(surf.nodes), surf.nodes) 
         self.surfs[surf.name] = surf
+
+#     def mapping_tags(self):
+#         if b"FORM" == self.chunkname:
+#             (tag_type,) = self.unpack("4s")
+#             if tag_type == b"SURF":
+#                 self.read_surf()
+#             else:
+#                 self.error(f"Unsupported tag_type: {tag_type}")
+#                 self.rootchunk.skip()
+#         
+#         super().mapping_tags()
+
 
 #     def read_lwo(self):
 #         self.f = open(self.filename, "rb")
