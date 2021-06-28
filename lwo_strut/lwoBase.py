@@ -280,10 +280,9 @@ class LWOBase:
         self.l = LWOLogger("LWO", loglevel)
         self.offset = 0
 
-    #@property
-    def bytes2(self):
-        self.offset = 0
-        return self.rootchunk.read()
+#     def read_bytes(self):
+#         self.offset = 0
+#         return self.rootchunk.read()
         
     def debug(self, msg):
          self.l.debug(msg)
@@ -302,7 +301,7 @@ class LWOBase:
  
     def unpack(self, x):
         read_length = calc_read_length(x)
-        y = struct.unpack(x, self.sbytes[self.offset : self.offset + read_length])
+        y = struct.unpack(x, self.bytes[self.offset : self.offset + read_length])
         self.offset += read_length
         return y
     
@@ -316,7 +315,7 @@ class LWOBase:
         """Parse a zero-padded string."""
         
         if length is None:
-            raw_name = self.sbytes[self.offset:]
+            raw_name = self.bytes[self.offset:]
             i = raw_name.find(b"\0")
             name_len = i + 1
             if name_len % 2 == 1:  # Test for oddness.
@@ -329,7 +328,7 @@ class LWOBase:
                 name = ""
         else:
             name_len = length
-            name = self.sbytes[self.offset:self.offset+name_len-1].decode("utf-8", "ignore")
+            name = self.bytes[self.offset:self.offset+name_len-1].decode("utf-8", "ignore")
         self.offset += name_len
         self.chunkname  = name
         self.chunklength = name_len
@@ -337,17 +336,15 @@ class LWOBase:
 
     def read_tags(self):
         """Read the object's Tags chunk."""
-        self.sbytes = self.bytes2()
-        while self.offset < len(self.sbytes):
+        while self.offset < len(self.bytes):
             tag = self.read_lwostring()
             self.tags.append(tag)
 
     def read_pnts(self):
         """Read the layer's points."""
-        self.sbytes = self.bytes2()
         self.info(f"    Reading Layer ({self.layers[-1].name }) Points")
-        while self.offset < len(self.sbytes):
-            #pnts = struct.unpack(">fff", self.sbytes[offset : offset + 12])
+        while self.offset < len(self.bytes):
+            #pnts = struct.unpack(">fff", self.bytes[offset : offset + 12])
             pnts = self.unpack(">fff")
             # Re-order the points so that the mesh has the right pitch,
             # the pivot already has the correct order.
@@ -358,6 +355,13 @@ class LWOBase:
             ]
             self.pnt_count += 1
             self.layers[-1].pnts.append(pnts)
+
+    def parse_tags(self):
+        self.chunkname = self.rootchunk.chunkname
+        #self.bytes = self.read_bytes()
+        self.bytes = self.rootchunk.read()
+        self.offset = 0
+        self.mapping_tags()
 
     def read_lwo(self):
         self.f = open(self.filename, "rb")

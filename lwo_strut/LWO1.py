@@ -1,6 +1,3 @@
-import struct
-import chunk
-
 from .lwoBase import LWOBase, _lwo_base, _obj_layer, _obj_surf
 
 class _surf_texture_5(_lwo_base):
@@ -23,7 +20,6 @@ class LWO1(LWOBase):
 
     def read_layr(self):
         """Read the object's layer data."""
-        self.sbytes = self.bytes2()
         # XXX: Need to check what these two exactly mean for a LWOB/LWLO file.
         new_layr = _obj_layer()
         new_layr.index, flags = self.unpack(">HH")
@@ -43,12 +39,11 @@ class LWO1(LWOBase):
         Read the polygons, each one is just a list of point indexes.
         But it also includes the surface index.
         """
-        self.sbytes = self.bytes2()
         self.info(f"    Reading Layer ({self.layers[-1].name}) Polygons")
         old_pols_count = len(self.layers[-1].pols)
         poly = 0
 
-        while self.offset < len(self.sbytes):
+        while self.offset < len(self.bytes):
             (pnts_count,) = self.unpack(">H")
             all_face_pnts = []
             for j in range(pnts_count):
@@ -68,7 +63,6 @@ class LWO1(LWOBase):
 
     def read_surf(self):
         """Read the object's surface data."""
-        self.sbytes = self.bytes2()
         if len(self.surfs) == 0:
             self.info("Reading Object Surfaces 5")
 
@@ -77,7 +71,7 @@ class LWO1(LWOBase):
         if len(name) != 0:
             surf.name = name
 
-        while self.offset < len(self.sbytes):
+        while self.offset < len(self.bytes):
             b = self.read_lwohead()
 
             # Now test which subchunk it is.
@@ -212,31 +206,30 @@ class LWO1(LWOBase):
 
         self.surfs[surf.name] = surf
     
-    def parse_tags(self):
-        chunkname = self.rootchunk.chunkname
-        if b"SRFS" == chunkname:
+    def mapping_tags(self):
+        if b"SRFS" == self.chunkname:
             self.read_tags()
-        elif b"LAYR" == chunkname:
+        elif b"LAYR" == self.chunkname:
             self.read_layr()
-        elif b"PNTS" == chunkname:
+        elif b"PNTS" == self.chunkname:
             if len(self.layers) == 0:
                 # LWOB files have no LAYR chunk to set this up.
                 nlayer = _obj_layer()
                 nlayer.name = "Layer 1"
                 self.layers.append(nlayer)
             self.read_pnts()
-        elif b"POLS" == chunkname:
+        elif b"POLS" == self.chunkname:
             self.last_pols_count = self.read_pols()
-        elif b"PCHS" == chunkname:
+        elif b"PCHS" == self.chunkname:
             self.last_pols_count = self.read_pols()
             self.layers[-1].has_subds = True
-        elif b"PTAG" == chunkname:
-            #(tag_type,) = struct.unpack("4s", self.rootchunk.read(4))
+        elif b"PTAG" == self.chunkname:
+            #(tag_type,) = self.unpack("4s")
             self.rootchunk.skip()
-        elif b"SURF" == chunkname:
+        elif b"SURF" == self.chunkname:
             self.read_surf()
         else:
             # For Debugging \/.
             # if handle_layer:
-            self.error(f"Skipping Chunk: {chunkname}")
+            self.error(f"Skipping Chunk: {self.chunkname}")
             self.rootchunk.skip()

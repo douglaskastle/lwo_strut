@@ -1,6 +1,3 @@
-import struct
-import chunk
-
 from .lwoBase import LWOBase, _obj_layer, _obj_surf, _surf_texture, _surf_position
 
 
@@ -15,7 +12,7 @@ class LWO2(LWOBase):
 
     def read_vx(self):
         """Read a variable-length index."""
-        pointdata = self.sbytes[self.offset : self.offset + 4]
+        pointdata = self.bytes[self.offset : self.offset + 4]
         if 0 == len(pointdata):
             self.error("Incomplete lwo file, no more valid points: {self.filename}")
         if pointdata[0] != 255:
@@ -29,7 +26,6 @@ class LWO2(LWOBase):
 
     def read_clip(self):
         """Read texture clip path"""
-        self.sbytes = self.bytes2()
         (c_id, ) = self.unpack(">L")
         
         self.offset += 6
@@ -38,7 +34,6 @@ class LWO2(LWOBase):
 
     def read_layr(self):
         """Read the object's layer data."""
-        self.sbytes = self.bytes2()
         new_layr = _obj_layer()
         new_layr.index, flags = self.unpack(">HH")
 
@@ -56,19 +51,18 @@ class LWO2(LWOBase):
         else:
             new_layr.name = f"Layer {new_layr.index + 1}"
 
-        if len(self.sbytes) == self.offset + 2:
+        if len(self.bytes) == self.offset + 2:
             (new_layr.parent_index, ) = self.unpack(">h")
 
         self.layers.append(new_layr)
 
     def read_weightmap(self):
         """Read a weight map's values."""
-        self.sbytes = self.bytes2()
         self.offset += 2
         name = self.read_lwostring()
         weights = []
 
-        while self.offset < len(self.sbytes):
+        while self.offset < len(self.bytes):
             pnt_id = self.read_vx()
             (value,) = self.unpack(">f")
             weights.append([pnt_id, value])
@@ -77,12 +71,11 @@ class LWO2(LWOBase):
 
     def read_morph(self, is_abs):
         """Read an endomorph's relative or absolute displacement values."""
-        self.sbytes = self.bytes2()
         self.offset += 2
         name = self.read_lwostring()
         deltas = []
 
-        while self.offset < len(self.sbytes):
+        while self.offset < len(self.bytes):
             pnt_id = self.read_vx()
             pos = self.unpack(">fff")
             pnt = self.layers[-1].pnts[pnt_id]
@@ -99,18 +92,17 @@ class LWO2(LWOBase):
 
     def read_colmap(self):
         """Read the RGB or RGBA color map."""
-        self.sbytes = self.bytes2()
         (dia,) = self.unpack(">H")
         name = self.read_lwostring()
         colors = {}
 
         if dia == 3:
-            while self.offset < len(self.sbytes):
+            while self.offset < len(self.bytes):
                 pnt_id = self.read_vx()
                 col = self.unpack(">fff")
                 colors[pnt_id] = (col[0], col[1], col[2])
         elif dia == 4:
-            while self.offset < len(self.sbytes):
+            while self.offset < len(self.bytes):
                 pnt_id = self.read_vx()
                 col = self.unpack(">ffff")
                 colors[pnt_id] = (col[0], col[1], col[2])
@@ -125,12 +117,11 @@ class LWO2(LWOBase):
 
     def read_normmap(self):
         """Read vertex normal maps."""
-        self.sbytes = self.bytes2()
         self.offset += 2
         name = self.read_lwostring()
         vnorms = {}
 
-        while self.offset < len(self.sbytes):
+        while self.offset < len(self.bytes):
             pnt_id = self.read_vx()
             norm = self.unpack(">fff")
             vnorms[pnt_id] = [norm[0], norm[2], norm[1]]
@@ -139,14 +130,13 @@ class LWO2(LWOBase):
 
     def read_color_vmad(self):
         """Read the Discontinuous (per-polygon) RGB values."""
-        self.sbytes = self.bytes2()
         (dia,) = self.unpack(">H")
         name = self.read_lwostring()
         colors = {}
         abs_pid = len(self.layers[-1].pols) - self.last_pols_count
 
         if dia == 3:
-            while self.offset < len(self.sbytes):
+            while self.offset < len(self.bytes):
                 pnt_id = self.read_vx()
                 pol_id = self.read_vx()
 
@@ -158,7 +148,7 @@ class LWO2(LWOBase):
                 else:
                     colors[pol_id] = dict({pnt_id: (col[0], col[1], col[2])})
         elif dia == 4:
-            while self.offset < len(self.sbytes):
+            while self.offset < len(self.bytes):
                 pnt_id = self.read_vx()
                 pol_id = self.read_vx()
 
@@ -179,12 +169,11 @@ class LWO2(LWOBase):
 
     def read_uvmap(self):
         """Read the simple UV coord values."""
-        self.sbytes = self.bytes2()
         self.offset += 2
         name = self.read_lwostring()
         uv_coords = {}
 
-        while self.offset < len(self.sbytes):
+        while self.offset < len(self.bytes):
             pnt_id = self.read_vx()
             pos = self.unpack(">ff")
             uv_coords[pnt_id] = (pos[0], pos[1])
@@ -199,13 +188,12 @@ class LWO2(LWOBase):
 
     def read_uv_vmad(self):
         """Read the Discontinuous (per-polygon) uv values."""
-        self.sbytes = self.bytes2()
         self.offset += 2
         name = self.read_lwostring()
         uv_coords = {}
         abs_pid = len(self.layers[-1].pols) - self.last_pols_count
 
-        while self.offset < len(self.sbytes):
+        while self.offset < len(self.bytes):
             pnt_id = self.read_vx()
             pol_id = self.read_vx()
 
@@ -226,7 +214,6 @@ class LWO2(LWOBase):
 
     def read_weight_vmad(self):
         """Read the VMAD Weight values."""
-        self.sbytes = self.bytes2()
         self.offset += 2
         name = self.read_lwostring()
         if name != "Edge Weight":
@@ -236,10 +223,10 @@ class LWO2(LWOBase):
         # normal pointing at you). This gives edges a 'direction' which is used
         # when it comes to storing CC edge weight values. The weight is given
         # to the point preceding the edge that the weight belongs to.
-        while self.offset < len(self.sbytes):
+        while self.offset < len(self.bytes):
             pnt_id = self.read_vx()
             pol_id = self.read_vx()
-            (weight,) = struct.unpack(">f")
+            (weight,) = self.unpack(">f")
 
             face_pnts = self.layers[-1].pols[pol_id]
             try:
@@ -258,12 +245,11 @@ class LWO2(LWOBase):
 
     def read_normal_vmad(self):
         """Read the VMAD Split Vertex Normals"""
-        self.sbytes = self.bytes2()
         self.offset += 2
         name = self.read_lwostring()
         lnorms = {}
 
-        while self.offset < len(self.sbytes):
+        while self.offset < len(self.bytes):
             pnt_id = self.read_vx()
             pol_id = self.read_vx()
             norm = self.unpack(">fff")
@@ -277,8 +263,7 @@ class LWO2(LWOBase):
     def read_pols(self):
         """Read the layer's polygons, each one is just a list of point indexes."""
         self.info(f"    Reading Layer ({self.layers[-1].name}) Polygons")
-        self.sbytes = self.bytes2()
-        pols_count = len(self.sbytes)
+        pols_count = len(self.bytes)
         old_pols_count = len(self.layers[-1].pols)
 
         while self.offset < pols_count:
@@ -296,9 +281,8 @@ class LWO2(LWOBase):
     def read_bones(self):
         """Read the layer's skelegons."""
         self.info(f"    Reading Layer ({self.layers[-1].name}) Bones")
-        self.sbytes = self.bytes2()
 
-        while self.offset < len(self.sbytes):
+        while self.offset < len(self.bytes):
             (pnts_count,) = self.unpack(">H")
             all_bone_pnts = []
             for j in range(pnts_count):
@@ -309,7 +293,6 @@ class LWO2(LWOBase):
 
     def read_bone_tags(self, type):
         """Read the bone name or roll tags."""
-        self.sbytes = self.bytes2()
 
         if "BONE" == type:
             bone_dict = self.layers[-1].bone_names
@@ -318,7 +301,7 @@ class LWO2(LWOBase):
         else:
             return
 
-        while self.offset < len(self.sbytes):
+        while self.offset < len(self.bytes):
             pid = self.read_vx()
             (tid,) = self.unpack(">H")
             bone_dict[pid] = self.tags[tid]
@@ -408,7 +391,7 @@ class LWO2(LWOBase):
                 self.debug(f"Unimplemented SubSubBlock: {b.name}")          
             else: # pragma: no cover
                 print(self.offset, slength)
-                print(self.sbytes[self.offset:], slength)
+                print(self.bytes[self.offset:], slength)
                 self.error(f"Unsupported SubSubBlock: {b.name}")
             
             if not self.offset == b.skip:
@@ -420,7 +403,6 @@ class LWO2(LWOBase):
     def read_surf_tags(self):
         """Read the list of PolyIDs and tag indexes."""
         self.info(f"    Reading Layer ({self.layers[-1].name}) Surface Assignments")
-        self.sbytes = self.bytes2()
 
         # Read in the PolyID/Surface Index pairs.
         abs_pid = len(self.layers[-1].pols) - self.last_pols_count
@@ -430,7 +412,7 @@ class LWO2(LWOBase):
             raise Exception(
                 len(self.layers[-1].pols), self.last_pols_count, self.layers[-1].pols
             )
-        while self.offset < len(self.sbytes):
+        while self.offset < len(self.bytes):
             pid = self.read_vx()
             (sid,) = self.unpack(">H")
             if sid not in self.layers[-1].surf_tags:
@@ -439,7 +421,6 @@ class LWO2(LWOBase):
 
     def read_surf(self):
         """Read the object's surface data."""
-        self.sbytes = self.bytes2()
         if len(self.surfs) == 0:
             self.info("Reading Object Surfaces")
 
@@ -450,7 +431,7 @@ class LWO2(LWOBase):
 
         s_name = self.read_lwostring()
         
-        while self.offset < len(self.sbytes) :
+        while self.offset < len(self.bytes) :
             b = self.read_lwohead()
             
             # Now test which subchunk it is.
@@ -562,7 +543,7 @@ class LWO2(LWOBase):
             elif b"BUF3" == b.name:  # pragma: no cover
                 self.debug(f"Unimplemented SubChunk: {b.name}")
             elif b"BUF4" == b.name:  # pragma: no cover
-                self.debug(f"Unimplemented SubChunk: {b.name}")
+               self.debug(f"Unimplemented SubChunk: {b.name}")
             elif b"LINE" == b.name:  # pragma: no cover
                 self.debug(f"Unimplemented SubChunk: {b.name}")
             elif b"NORM" == b.name:  # pragma: no cover
@@ -592,16 +573,15 @@ class LWO2(LWOBase):
 
         self.surfs[surf.name] = surf
 
-    def parse_tags(self):
-        chunkname = self.rootchunk.chunkname
-        if b"TAGS" == chunkname:
+    def mapping_tags(self):
+        if b"TAGS" == self.chunkname:
             self.read_tags()
-        elif b"LAYR" == chunkname:
+        elif b"LAYR" == self.chunkname:
             self.read_layr()
-        elif b"PNTS" == chunkname:
+        elif b"PNTS" == self.chunkname:
             self.read_pnts()
-        elif b"VMAP" == chunkname:
-            vmap_type = self.rootchunk.read(4)
+        elif b"VMAP" == self.chunkname:
+            (vmap_type,) = self.unpack("4s")
 
             if vmap_type == b"WGHT":
                 self.read_weightmap()
@@ -628,8 +608,8 @@ class LWO2(LWOBase):
                 self.error(f"Skipping vmap_type: {vmap_type}")
                 self.rootchunk.skip()
 
-        elif b"VMAD" == chunkname:
-            vmad_type = self.rootchunk.read(4)
+        elif b"VMAD" == self.chunkname:
+            (vmad_type,) = self.unpack("4s")
 
             if vmad_type == b"TXUV":
                 self.read_uv_vmad()
@@ -653,8 +633,8 @@ class LWO2(LWOBase):
                 self.error(f"Unsupported vmad_type: {vmad_type}")
                 self.rootchunk.skip()
 
-        elif b"POLS" == chunkname:
-            face_type = self.rootchunk.read(4)
+        elif b"POLS" == self.chunkname:
+            (face_type,) = self.unpack("4s")
             self.just_read_bones = False
             # PTCH is LW's Subpatches, SUBD is CatmullClark.
             if (
@@ -676,8 +656,8 @@ class LWO2(LWOBase):
                 self.error(f"Unsupported face_type: {face_type}")
                 self.rootchunk.skip()
 
-        elif b"PTAG" == chunkname:
-            (tag_type,) = struct.unpack("4s", self.rootchunk.read(4))
+        elif b"PTAG" == self.chunkname:
+            (tag_type,) = self.unpack("4s")
 #             if tag_type == b"SURF" and not self.just_read_bones:
 #                 # Ignore the surface data if we just read a bones chunk.
 #                 self.read_surf_tags()
@@ -725,37 +705,37 @@ class LWO2(LWOBase):
             else:  # pragma: no cover
                 self.error(f"Unsupported tag_type: {tag_type}")
                 self.rootchunk.skip()
-        elif b"FORM" == chunkname:
+        elif b"FORM" == self.chunkname:
             #self.read_form()
-            (tag_type,) = struct.unpack("4s", self.rootchunk.read(4))
+            (tag_type,) = self.unpack("4s")
             if tag_type == b"SURF":
                 self.read_surf()
             else:
                 self.error(f"Unsupported tag_type: {tag_type}")
                 self.rootchunk.skip()
-        elif b"SURF" == chunkname:
+        elif b"SURF" == self.chunkname:
             self.read_surf()
-        elif b"CLIP" == chunkname:
+        elif b"CLIP" == self.chunkname:
             self.read_clip()
-        elif b"BBOX" == chunkname:  # pragma: no cover
-            self.debug(f"Unimplemented Chunk: {chunkname}")  
+        elif b"BBOX" == self.chunkname:  # pragma: no cover
+            self.debug(f"Unimplemented Chunk: {self.chunkname}")  
             self.rootchunk.skip()
-        elif b"VMPA" == chunkname:  # pragma: no cover
-            self.debug(f"Unimplemented Chunk: {chunkname}")  
+        elif b"VMPA" == self.chunkname:  # pragma: no cover
+            self.debug(f"Unimplemented Chunk: {self.chunkname}")  
             self.rootchunk.skip()
-        elif b"PNTS" == chunkname:  # pragma: no cover
-            self.debug(f"Unimplemented Chunk: {chunkname}")  
+        elif b"PNTS" == self.chunkname:  # pragma: no cover
+            self.debug(f"Unimplemented Chunk: {self.chunkname}")  
             self.rootchunk.skip()
-        elif b"POLS" == chunkname:  # pragma: no cover
-            self.debug(f"Unimplemented Chunk: {chunkname}")  
+        elif b"POLS" == self.chunkname:  # pragma: no cover
+            self.debug(f"Unimplemented Chunk: {self.chunkname}")  
             self.rootchunk.skip()
-        elif b"PTAG" == chunkname:  # pragma: no cover
-            self.debug(f"Unimplemented Chunk: {chunkname}")  
+        elif b"PTAG" == self.chunkname:  # pragma: no cover
+            self.debug(f"Unimplemented Chunk: {self.chunkname}")  
             self.rootchunk.skip()
-        elif b"ENVL" == chunkname:  # pragma: no cover
-            self.debug(f"Unimplemented Chunk: {chunkname}")  
+        elif b"ENVL" == self.chunkname:  # pragma: no cover
+            self.debug(f"Unimplemented Chunk: {self.chunkname}")  
             self.rootchunk.skip()
         else:  # pragma: no cover
-            self.error(f"Skipping Chunk: {chunkname}")       
+            self.error(f"Skipping Chunk: {self.chunkname}")       
             self.rootchunk.skip()
  

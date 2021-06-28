@@ -97,7 +97,7 @@ class LWO3(LWO2):
         
         (name, ) = self.unpack("4s")
         b = Block()
-        b.bytes = self.sbytes
+        b.bytes = self.bytes
         #b.start = self.offset
         #b.length = self.bytes[self.offset:]
 
@@ -115,13 +115,13 @@ class LWO3(LWO2):
             #print(subname)
             b.name = subname
             b.length = form_length
-            #b.bytes = self.sbytes[self.offset:self.offset+form_length+4]
+            #b.bytes = self.bytes[self.offset:self.offset+form_length+4]
         
         return b
     
     def read_surf(self):
         """Read the object's surface data."""
-        self.sbytes = self.bytes2()
+        self.bytes = self.bytes2()
         if len(self.surfs) == 0:
             self.info("Reading Object Surfaces")
 
@@ -148,8 +148,8 @@ class LWO3(LWO2):
         exit()
 
         i = 0
-        while self.offset < len(self.sbytes):
-            #self.debug(f"Surf offset {self.offset} {len(self.sbytes)}")
+        while self.offset < len(self.bytes):
+            #self.debug(f"Surf offset {self.offset} {len(self.bytes)}")
             block = self.read_block()
             
             print(block.name, block.values, block.bytes)
@@ -161,7 +161,7 @@ class LWO3(LWO2):
 #             self.debug(f"Surf {subchunk_name}")
 #             
 #             if b"FORM" == subchunk_name:
-#                 print(self.sbytes[self.offset:])
+#                 print(self.bytes[self.offset:])
 #                 #if 
 #             
 #             el
