@@ -19,8 +19,8 @@ class LWODetect:
 
         if chunk_name == b"LWO2":
             lwo = LWO2(filename, loglevel)
-#         elif chunk_name == b"LWO3":
-#             lwo = LWO3(filename, loglevel)
+        elif chunk_name == b"LWO3":
+            lwo = LWO3(filename, loglevel)
         elif chunk_name == b"LWOB" or chunk_name == b"LWLO":
             # LWOB and LWLO are the old format, LWLO is a layered object.
             lwo = LWO1(filename, loglevel)

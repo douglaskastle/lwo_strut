@@ -34,13 +34,13 @@ def calc_read_length(x):
         else:
             i = int(g[0])
         j = g[1]
-        if 'b' == j or 's' == j:
+        if 'b' == j or 's' == j or 'c' == j:
             z += i*1
         elif 'h' == j:
             z += i*2
         elif 'f' == j or 'l' == j or 'i' == j:
             z += i*4
-        elif 'q' == j:
+        elif 'q' == j or 'd' == j:
             z += i*8
     return z
 
@@ -388,16 +388,3 @@ class LWOBase:
                 break
             self.parse_tags()
         del self.f
-
-#         self.chunks = []
-#         while True:
-#             try:
-#                  self.chunks.append(chunk.Chunk(self.f))
-#             except EOFError:
-#                 break
-#         del self.f
-#         
-#         for rootchunk in self.chunks:
-#             self.debug(rootchunk)
-#             #self.parse_tags()
-#         exit()

@@ -706,7 +706,6 @@ class LWO2(LWOBase):
                 self.error(f"Unsupported tag_type: {tag_type}")
                 self.rootchunk.skip()
         elif b"FORM" == self.chunkname:
-            #self.read_form()
             (tag_type,) = self.unpack("4s")
             if tag_type == b"SURF":
                 self.read_surf()
