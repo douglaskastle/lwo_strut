@@ -1,13 +1,30 @@
-import struct
-import chunk
 from .LWO2 import LWO2
 from .lwoBase import _lwo_base
 
 CMAP = {
     b'FORM' : None,
     b'VERS' : ">Q",
-    b'NLOC' : "fff",
-    b'NODS' : "fff",
+    b'NLOC' : ">III",
+    b'NODS' : None,
+    b'NZOM' : ">If",
+    b'NSTA' : ">IH",
+    b'NVER' : ">II",
+    b'NNDS' : ">I",
+    b'NSRV' : ">I",
+    b'NRNM' : ">I",
+    b'NNME' : ">I",
+    b'NCRD' : ">I",
+    b'NMOD' : ">I",
+    b'NDTA' : ">I",
+    b'NPRW' : ">I",
+    b'NCOM' : ">I",
+    b'NPLA' : ">I",
+    b'INME' : ">I",
+    b'IINM' : ">I",
+    b'IINN' : ">I",
+    b'IONM' : ">I",
+    b'SSHN' : ">I",
+    b'ENUM' : ">II",
 }
 
 class _obj_surf3(_lwo_base):
@@ -29,7 +46,7 @@ class _obj_surf3(_lwo_base):
         "bump",
         "strs",
         "smooth",
-        "textures",
+        "nodes",
     )
 
     def __init__(self):
@@ -51,43 +68,137 @@ class _obj_surf3(_lwo_base):
         self.bump = 1.0  # Bump
         self.strs = 0.0  # Smooth Threshold
         self.smooth = False  # Surface Smoothing
-        self.textures = {}  # Textures list
+        self.textures = {}
+        self.nodes = []
 
-    def lwoprint(self):  # debug: no cover
-        print(f"SURFACE")
-        print(f"Surface Name:       {self.name}")
-        print(
-            f"Color:              {int(self.colr[0]*256)} {int(self.colr[1]*256)} {int(self.colr[2]*256)}"
-        )
-        print(f"Luminosity:         {self.lumi*100:>8.1f}%")
-        print(f"Diffuse:            {self.diff*100:>8.1f}%")
-        print(f"Specular:           {self.spec*100:>8.1f}%")
-        print(f"Glossiness:         {self.glos*100:>8.1f}%")
-        print(f"Reflection:         {self.refl*100:>8.1f}%")
-        print(f"Transparency:       {self.tran*100:>8.1f}%")
-        print(f"Refraction Index:   {self.rind:>8.1f}")
-        print(f"Translucency:       {self.trnl*100:>8.1f}%")
-        print(f"Bump:               {self.bump*100:>8.1f}%")
-        print(f"Smoothing:          {self.smooth:>8}")
-        print(f"Smooth Threshold:   {self.strs*100:>8.1f}%")
-        print(f"Reflection Bluring: {self.rblr*100:>8.1f}%")
-        print(f"Refraction Bluring: {self.tblr*100:>8.1f}%")
-        print(f"Diffuse Sharpness:  {self.shrp*100:>8.1f}%")
-        print()
-        for textures_type in self.textures.keys():
-            print(textures_type)
-            for texture in self.textures[textures_type]:
-                texture.lwoprint(indent=1)
+#     def lwoprint(self):  # debug: no cover
+#         print(f"SURFACE")
+#         print(f"Surface Name:       {self.name}")
+#         print(
+#             f"Color:              {int(self.colr[0]*256)} {int(self.colr[1]*256)} {int(self.colr[2]*256)}"
+#         )
+#         print(f"Luminosity:         {self.lumi*100:>8.1f}%")
+#         print(f"Diffuse:            {self.diff*100:>8.1f}%")
+#         print(f"Specular:           {self.spec*100:>8.1f}%")
+#         print(f"Glossiness:         {self.glos*100:>8.1f}%")
+#         print(f"Reflection:         {self.refl*100:>8.1f}%")
+#         print(f"Transparency:       {self.tran*100:>8.1f}%")
+#         print(f"Refraction Index:   {self.rind:>8.1f}")
+#         print(f"Translucency:       {self.trnl*100:>8.1f}%")
+#         print(f"Bump:               {self.bump*100:>8.1f}%")
+#         print(f"Smoothing:          {self.smooth:>8}")
+#         print(f"Smooth Threshold:   {self.strs*100:>8.1f}%")
+#         print(f"Reflection Bluring: {self.rblr*100:>8.1f}%")
+#         print(f"Refraction Bluring: {self.tblr*100:>8.1f}%")
+#         print(f"Diffuse Sharpness:  {self.shrp*100:>8.1f}%")
+#         print()
+#         for textures_type in self.textures.keys():
+#             print(textures_type)
+#             for texture in self.textures[textures_type]:
+#                 texture.lwoprint(indent=1)
+
+class _obj_nodeTag3(_lwo_base):
+
+    __slots__ = (
+        "name",
+        "realname", 
+        "coords",
+        "mode",
+        "preview",
+        "comment",
+        "placement",
+    )
+    def __init__(self):
+        self.name = "Default"
+        self.realname = "Default"
+        self.coords = (0, 0)
+        self.mode = 0
+        self.preview = "Default"
+        self.comment = "Default"
+        self.placement = 0
+    
+    def __str__(self):
+        return f"\n{self.name}\n{self.realname}\n{self.coords}\n{self.mode}\n{self.preview}\n{self.comment}\n{self.placement}"
+    
+class _obj_nodeRoot3(_lwo_base):
+
+    __slots__ = (
+        "loc",
+        "zoom", 
+        "disabled",
+    )
+    def __init__(self):
+        self.loc = (0, 0)
+        self.zoom = 0.0
+        self.disabled = False
+    
+    def __str__(self):
+        return f"\n{self.loc}\n{self.zoom}\n{self.disabled}"
+    
+class _obj_nodeName3(_lwo_base):
+
+    __slots__ = (
+        "name",
+        "inputname", 
+        "inputnodename",
+        "inputoutputname",
+    )
+    def __init__(self):
+        self.name = "Default"
+        self.inputname = "Default"
+        self.inputnodename = "Default"
+        self.inputoutputname = "Default"
+    
+    def __str__(self):
+        return f"\n{self.name}\n{self.inputname}\n{self.inputnodename}\n{self.inputoutputname}"
+    
+class _obj_nodeserver3(_lwo_base):
+
+    __slots__ = (
+        "name",
+        "tag", 
+    )
+    def __init__(self):
+        self.name = 0
+        self.tag = None
+    
+    def __str__(self):
+        return f"\n{self.name}\n{self.tag}"
+    
+class _obj_node3(_lwo_base):
+
+    __slots__ = (
+        "version",
+        "root", 
+        "server",
+        "connections",
+    )
+    def __init__(self):
+        self.version = 0
+        self.root = None
+        self.server = None
+        self.connections = None
+    
+    def __str__(self):
+        return f"\n{self.version}\n{self.root}\n{self.server}\n{self.connections}"
+    
+
 class Block:
     def __init__(self, name=None):
         self.name = name
-        self.start = 0
         self.length = 0
         self.form = False
         self.values = None
-        self.bytes = None
+        self.skip = 0
+        self.skip1 = 0
 
-#class LWO3(LWOBase):
+# class LWOBlock:
+#     def __init__(self, name, length, offset):
+#         self.name = name
+#         self.length = length
+#         self.offset = offset
+#         self.skip = self.offset + length
+
 class LWO3(LWO2):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -96,32 +207,170 @@ class LWO3(LWO2):
     def read_block(self):
         
         (name, ) = self.unpack("4s")
+        
         b = Block()
-        b.bytes = self.bytes
-        #b.start = self.offset
-        #b.length = self.bytes[self.offset:]
 
         if not CMAP[name] is None:
-            #print(CMAP[name], self.calc_read_length(CMAP[name]))
             b.values = self.unpack(CMAP[name])
             b.name = name
+            b.skip = self.offset
+            b.skip1 = self.offset + b.values[0]
         else:
             b.form = True
             (form_length, ) = self.unpack(">I")
-            #self.debug(f"length {form_length}")
-            b.start = self.offset
+            b.length = form_length
+            b.skip = self.offset+b.length
+            b.skip1 = b.skip
         
             (subname, ) = self.unpack("4s")
-            #print(subname)
+            b.length -= 4
             b.name = subname
-            b.length = form_length
-            #b.bytes = self.bytes[self.offset:self.offset+form_length+4]
-        
+            
         return b
     
+    def read_node_root(self, length):
+        t = _obj_nodeRoot3()
+        slength = self.offset + length
+        while self.offset < slength:
+            b = self.read_block()
+            if b"NLOC" == b.name: # Location
+                t.loc = b.values[1:]
+            elif b"NZOM" == b.name: # Zoom 
+                t.zoom = b.values[1]
+            elif b"NSTA" == b.name: # Disabled
+                t.disabled = bool(b.values[1])
+            else:  # pragma: no cover 
+                self.error(f"Unsupported Block: {b.name}")    
+            self.offset = b.skip
+        return t
+    
+    def read_node_tags(self, length):
+        t = _obj_nodeTag3()
+        slength = self.offset + length
+        while self.offset < slength:
+            b = self.read_block()
+            if b"NRNM" == b.name: # RealName
+                t.realname = self.read_lwostring()
+            elif b"NNME" == b.name: # Name
+                t.name = self.read_lwostring()
+            elif b"NCRD" == b.name: # Coordinates
+                #print(b.values)
+                t.coords = self.unpack(">hh")
+            elif b"NMOD" == b.name: # Mode
+                (t.mode, ) = self.unpack(">I")
+            elif b"NDTA" == b.name: # Data
+                pass
+            elif b"NPRW" == b.name: # Preview
+                t.preview = self.read_lwostring()
+            elif b"NCOM" == b.name: # Comment
+                t.comment = self.read_lwostring()
+            elif b"NPLA" == b.name: # Placement
+                (t.placement, ) = self.unpack(">I")
+            else:  # pragma: no cover 
+                self.error(f"Unsupported Block: {b.name}")    
+            self.offset = b.skip1
+        
+        return t
+    
+    def read_node_setup(self, length):
+        t = _obj_nodeserver3()
+        slength = self.offset + length
+        
+        while self.offset < slength:
+            b = self.read_block()
+            if b"NSRV" == b.name: # Server
+                t.name= self.read_lwostring()
+            elif b"NTAG" == b.name: # Node Tags
+                t.tag = self.read_node_tags(b.length)
+            else:  # pragma: no cover 
+                self.error(f"Unsupported Block: {b.name}")    
+            self.offset = b.skip1
+        return t
+    
+    def read_node_connections(self, length):
+        t = _obj_nodeName3()
+        slength = self.offset + length
+        while self.offset < slength:
+            b = self.read_block()
+            s = self.read_lwostring()
+            
+            if b"INME" == b.name: # NodeName 
+                t.name = s
+            elif b"IINM" == b.name: # InputName
+                t.inputname = s
+            elif b"IINN" == b.name: # InputNodeName
+                t.inputnodename = s
+            elif b"IONM" == b.name: # InputOutputName
+                t.inputoutputname = s
+            else:  # pragma: no cover 
+                self.error(f"Unsupported Block: {b.name}")    
+            self.offset = b.skip1
+        return t
+    
+    def read_nodes(self, length):
+        n = _obj_node3()
+        slength = self.offset + length
+        while self.offset < slength:
+            b = self.read_block()
+            if b"NVER" == b.name:
+                n.version = b.values[1]
+            elif b"NROT" == b.name:
+                n.root = self.read_node_root(b.length)
+            elif b"NNDS" == b.name:
+                n.server = self.read_node_setup(b.length)
+            elif b"NCON" == b.name:
+                n.connections = self.read_node_connections(b.length)
+            else:  # pragma: no cover 
+                self.error(f"Unsupported Block: {b.name}")    
+            self.offset = b.skip
+        return n
+    
+    def read_shader_data(self, length):
+        return
+        b = self.read_block()
+        print(b.name)
+        b = self.read_block()
+        print(b.name)
+        b = self.read_block()
+        print(b.name)
+        b = self.read_block()
+        print(b.name)
+        b = self.read_block()
+        print(b.name)
+        b = self.read_block()
+        print(b.name)
+#         b = self.read_block()
+#         print(b.name)
+        return
+        
+        slength = self.offset + length
+        while self.offset < slength:
+            b = self.read_block()
+            
+            if b"ATTR" == b.name:
+                pass
+                self.debug(f"Unimplemented: {b.name}")    
+#             elif b"SSHD" == b.name:
+#                 self.read_shader_data(b.length)
+            else:  # pragma: no cover 
+                self.error(f"Unsupported Block: {b.name}")    
+            self.offset = b.skip
+    
+    def read_shader(self, length):
+        slength = self.offset + length
+        while self.offset < slength:
+            b = self.read_block()
+            
+            if b"SSHN" == b.name:
+                s = self.read_lwostring()
+            elif b"SSHD" == b.name:
+                self.read_shader_data(b.length)
+            else:  # pragma: no cover 
+                self.error(f"Unsupported Block: {b.name}")    
+            self.offset = b.skip1
+   
     def read_surf(self):
         """Read the object's surface data."""
-        self.bytes = self.bytes2()
         if len(self.surfs) == 0:
             self.info("Reading Object Surfaces")
 
@@ -132,149 +381,53 @@ class LWO3(LWO2):
         surf = _obj_surf3()
         if not 0 == len(name):
             surf.name = name
-        self.debug(f"Surf {surf.name}")
+        #self.debug(f"Surf {surf.name}")
 
         s_name = self.read_lwostring()
-        #self.debug(f"Surf {s_name}")
         
-        block = self.read_block()
-       
-        print(block.name, block.values, block.bytes)
-       
-        block = self.read_block()
-       
-        print(block.name, block.values, block.bytes[block.start:block.start+block.length])
-
-        exit()
-
-        i = 0
+        nodes = []
         while self.offset < len(self.bytes):
-            #self.debug(f"Surf offset {self.offset} {len(self.bytes)}")
-            block = self.read_block()
+            b = self.read_block()
+            if b"VERS" == b.name:
+                (surf.version, ) = b.values
+            elif b"NODS" == b.name:
+                n = self.read_nodes(b.length)
+                nodes.append(n)
+            elif b"SSHA" == b.name:
+                self.read_shader(b.length)
+            else:  # pragma: no cover 
+                self.error(f"Unsupported Block: {b.name}")    
+                print(b.name, b.length)
             
-            print(block.name, block.values, block.bytes)
-            
-            if 3 == i:
-                exit()
-
-#             #(subchunk_name, ) = self.unpack("4s")
-#             self.debug(f"Surf {subchunk_name}")
-#             
-#             if b"FORM" == subchunk_name:
-#                 print(self.bytes[self.offset:])
-#                 #if 
-#             
-#             el
-            
-#             if b"VERS" == block.name:
-#                 (surf.version, ) = self.unpack(">Q")
-#             elif b"NODS" == subchunk_name:
-#                 pass
-#             elif b"NROT" == subchunk_name:
-#                 pass
-#             elif b"NLOC" == subchunk_name:
-#                 self.unpack("fff")
-#                 pass
-#             elif b"NZOM" == subchunk_name:
-#                 self.unpack("ff")
-#                 pass
-#             elif b"NSTA" == subchunk_name:
-#                 self.unpack("f")
-#                 self.unpack("h")
-#                 pass
-#             elif b"NVER" == subchunk_name:
-#                 self.unpack("f")
-#                 self.unpack("f")
-#                 pass
-#             elif b"NNDS" == subchunk_name:
-#                 pass
-#             elif b"NSRV" == subchunk_name:
-#                 (length, ) = self.unpack(">I")
-#                # yy = self.read_lwostring(length)
-#                 s = self.read_lwostring()
-#                 self.debug(f"Surf {subchunk_name} {s}")
-#             elif b"NTAG" == subchunk_name:
-#                 pass
-#             elif b"NRNM" == subchunk_name:
-#                 (length, ) = self.unpack(">I")
-#                 s = self.read_lwostring()
-#                 self.debug(f"Surf {subchunk_name} {s}")
-#             elif b"NNME" == subchunk_name:
-#                 (length, ) = self.unpack(">I")
-#                 s = self.read_lwostring()
-#                 self.debug(f"Surf {subchunk_name} {s}")
-#             elif b"NCRD" == subchunk_name:
-#                 self.unpack("fff")
-#             elif b"NMOD" == subchunk_name:
-#                 self.unpack("ff")
-#             elif b"NDTA" == subchunk_name:
-#                 pass
-#             elif b"NPRW" == subchunk_name:
-#                 (length, ) = self.unpack(">I")
-#                 self.debug(f"Surf length {length}")
-#                 self.offset += length
-#                 #self.unpack("h")
-#             elif b"NCOM" == subchunk_name:
-#                 pass
-#                 (length, ) = self.unpack(">I")
-#                 self.debug(f"Surf length {length}")
-#                 self.offset += length
-#             elif b"NPLA" == subchunk_name:
-#                 self.unpack("ff")
-#             elif b"SATR" == subchunk_name:
-#                 pass
-#             elif b"META" == subchunk_name:
-#                 pass
-#             elif b"ENUM" == subchunk_name:
-#                 pass
-# #             elif b"" == subchunk_name:
-# #                 pass
-# #                 #self.debug(f"Unimplemented SubChunk: {subchunk_name}")  # pragma: no cover 
-#             else:
-#                 self.error(f"Unsupported SubBlock: {subchunk_name}")  # pragma: no cover     
-            
-            
-            i += 1
+            self.offset = b.skip
+        
+        surf.nodes = nodes 
+        
+        #print(len(surf.nodes), surf.nodes) 
         self.surfs[surf.name] = surf
 
-    def read_lwo(self):
-        self.f = open(self.filename, "rb")
-        try:
-            header, chunk_size, chunk_name = struct.unpack(">4s1L4s", self.f.read(12))
-        except:
-            self.error(f"Error parsing file header! Filename {self.filename}")
-            self.f.close()
-            return
-
-        if not chunk_name in self.file_types:
-            raise Exception(
-                f"Incorrect file type: {chunk_name} not in {self.file_types}"
-            )
-        self.file_type = chunk_name
-
-        self.info(f"Importing LWO: {self.filename}")
-        self.info(f"{self.file_type.decode('ascii')} Format")
-
-        while True:
-            try:
-                self.rootchunk = chunk.Chunk(self.f)
-                print(self.rootchunk.chunkname)
-            except EOFError:
-                break
-            #self.parse_tags()
-        del self.f
-
-#         self.chunks = []
+#     def read_lwo(self):
+#         self.f = open(self.filename, "rb")
+#         try:
+#             header, chunk_size, chunk_name = struct.unpack(">4s1L4s", self.f.read(12))
+#         except:
+#             self.error(f"Error parsing file header! Filename {self.filename}")
+#             self.f.close()
+#             return
+# 
+#         if not chunk_name in self.file_types:
+#             raise Exception(
+#                 f"Incorrect file type: {chunk_name} not in {self.file_types}"
+#             )
+#         self.file_type = chunk_name
+# 
+#         self.info(f"Importing LWO: {self.filename}")
+#         self.info(f"{self.file_type.decode('ascii')} Format")
+# 
 #         while True:
 #             try:
-#                  self.chunks.append(chunk.Chunk(self.f))
+#                 self.rootchunk = chunk.Chunk(self.f)
 #             except EOFError:
 #                 break
-#         del self.f
-#         
-#         for self.rootchunk in self.chunks:
-#             self.debug(self.rootchunk)
-#             #self.rootchunk = rootchunk
-#             print(self.rootchunk.chunkname)
 #             self.parse_tags()
-#             #exit()
+#         del self.f
