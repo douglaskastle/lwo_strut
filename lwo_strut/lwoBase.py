@@ -25,6 +25,116 @@ from collections import OrderedDict
 
 from .lwoLogger import LWOLogger
 
+CMAP = {
+#    b'FORM' : None,
+    b'VERS' : ">I",
+    b'NLOC' : ">II",
+    b'NZOM' : ">f",
+    b'NSTA' : ">H",
+    b'NVER' : ">I",
+    b'NNDS' : None,
+    b'NSRV' : None,
+    b'NRNM' : None,
+    b'NNME' : None,
+    b'NCRD' : ">ii",
+    b'NMOD' : ">I",
+    b'NDTA' : None,
+    b'NPRW' : None,
+    b'NCOM' : None,
+    b'NPLA' : ">I",
+    b'NTAG' : None,
+    b'NROT' : None,
+    b'NNDS' : None,
+    b'NCON' : None,
+    b'INME' : None,
+    b'IINM' : None,
+    b'IINN' : None,
+    b'IONM' : None,
+    b'SSHN' : None,
+    b'ENUM' : ">I",
+    b'SMAN' : ">f",
+    b'SIDE' : ">H",
+    b'NSEL' : None,
+
+    b'CNTR' : ">fffh",
+    b'SIZE' : ">fffh",
+    b'ROTA' : ">fffh",
+    b'FALL' : ">hfffh",
+    b'OREF' : None,
+    b'CSYS' : ">h",
+
+    b'TMAP' : None,
+    b'CHAN' : "4s",
+    b'OPAC' : ">Hf",
+    b'ENAB' : ">H",
+    b'IMAG' : ">H",
+    b'PROJ' : ">H",
+    b'VMAP' : None,
+    b'FUNC' : None,
+    b'NEGA' : ">H",
+    b'AXIS' : ">H",
+    b'WRAP' : None,
+    b'WRPW' : None,
+    b'WRPH' : None,
+    b'AAST' : None,
+    b'PIXB' : None,
+    b'VALU' : None,
+    b'TAMP' : None,
+    b'STCK' : None,
+    b'PNAM' : None,
+    b'INAM' : None,
+    b'GRST' : None,
+    b'GREN' : None,
+    b'GRPT' : None,
+    b'IKEY' : None,
+    b'FKEY' : None,
+    b'GVER' : None,
+
+    b'COLR' : ">fff",
+    b'DIFF' : ">f",
+    b'LUMI' : ">f",
+    b'SPEC' : ">f",
+    b'REFL' : ">f",
+    b'RBLR' : ">f",
+    b'TRAN' : ">f",
+    b'RIND' : ">f",
+    b'TBLR' : ">f",
+    b'TRNL' : ">f",
+    b'GLOS' : ">f",
+    b'SHRP' : ">f",
+    b'SMAN' : ">f",
+    b'BUMP' : ">f",
+    b'BLOK' : None,
+    b'VERS' : None,
+    b'NODS' : None,
+    b'GVAL' : None,
+    b'NVSK' : None,
+    b'CLRF' : None,
+    b'CLRH' : None,
+    b'ADTR' : None,
+    #b'SIDE' : None,
+    b'RFOP' : None,
+    b'RIMG' : None,
+    b'TIMG' : None,
+    b'TROP' : None,
+    b'ALPH' : None,
+    b'BUF1' : None,
+    b'BUF2' : None,
+    b'BUF3' : None,
+    b'BUF4' : None,
+    b'LINE' : None,
+    b'NORM' : None,
+    b'RFRS' : None,
+    b'VCOL' : None,
+    b'RFLS' : None,
+    b'CMNT' : None,
+    b'FLAG' : None,
+    b'RSAN' : None,
+    b'LCOL' : None,
+    b'LSIZ' : None,
+    b'TSAN' : None,
+}
+
 def calc_read_length(x):
     z = 0
     h = re.findall(r"(\d?)(\w)", x.lower())
@@ -90,6 +200,7 @@ class _obj_layer(_lwo_base):
         "edge_weights",
         "surf_tags",
         "has_subds",
+        "bbox",
     )
 
     def __init__(self):
@@ -112,6 +223,7 @@ class _obj_layer(_lwo_base):
         self.edge_weights = {}
         self.surf_tags = {}
         self.has_subds = False
+        self.bbox = [(0, 0, 0),(0, 0, 0)]
 
 
 class _obj_surf(_lwo_base):
@@ -251,12 +363,97 @@ class _surf_texture(_lwo_base):
         print(f"Image:          {self.image}")
         print()
 
+class _obj_nodeTag(_lwo_base):
+
+    __slots__ = (
+        "name",
+        "realname", 
+        "coords",
+        "mode",
+        "preview",
+        "comment",
+        "placement",
+    )
+    def __init__(self):
+        self.name = "Default"
+        self.realname = "Default"
+        self.coords = (0, 0)
+        self.mode = 0
+        self.preview = "Default"
+        self.comment = "Default"
+        self.placement = 0
+    
+    def __str__(self):
+        return f"\n{self.name}\n{self.realname}\n{self.coords}\n{self.mode}\n{self.preview}\n{self.comment}\n{self.placement}"
+    
+class _obj_nodeRoot(_lwo_base):
+
+    __slots__ = (
+        "loc",
+        "zoom", 
+        "disabled",
+    )
+    def __init__(self):
+        self.loc = (0, 0)
+        self.zoom = 0.0
+        self.disabled = False
+    
+    def __str__(self):
+        return f"\n{self.loc}\n{self.zoom}\n{self.disabled}"
+    
+class _obj_nodeName(_lwo_base):
+
+    __slots__ = (
+        "name",
+        "inputname", 
+        "inputnodename",
+        "inputoutputname",
+    )
+    def __init__(self):
+        self.name = "Default"
+        self.inputname = "Default"
+        self.inputnodename = "Default"
+        self.inputoutputname = "Default"
+    
+    def __str__(self):
+        return f"\n{self.name}\n{self.inputname}\n{self.inputnodename}\n{self.inputoutputname}"
+    
+class _obj_nodeserver(_lwo_base):
+
+    __slots__ = (
+        "name",
+        "tag", 
+    )
+    def __init__(self):
+        self.name = 0
+        self.tag = None
+    
+    def __str__(self):
+        return f"\n{self.name}\n{self.tag}"
+    
+class _obj_node(_lwo_base):
+
+    __slots__ = (
+        "version",
+        "root", 
+        "server",
+        "connections",
+    )
+    def __init__(self):
+        self.version = 0
+        self.root = None
+        self.server = None
+        self.connections = None
+
 class LWOBlock:
-    def __init__(self, name, length, offset):
-        self.name = name
-        self.length = length
-        self.offset = offset
-        self.skip = self.offset + length
+    def __init__(self):
+        self.name = None
+        self.length = 0
+        #self.offset = 0
+        self.skip = 0
+        
+        self.values = None
+        #self.skip1 = 0
 
 class LWOBase:
     def __init__(self, filename=None, loglevel=logging.INFO):
@@ -305,10 +502,16 @@ class LWOBase:
         self.offset += read_length
         return y
     
-    def read_lwohead(self):
+    def read_block(self):
+        b = LWOBlock()
+        
         (name,) = self.unpack("4s")
         (length,) = self.unpack(">H")
-        b = LWOBlock(name, length, self.offset)
+        b.length = length
+        b.skip = self.offset + b.length
+        b.name = name
+        if not CMAP[name] is None:
+            b.values = self.unpack(CMAP[name])
         return b
     
     def read_lwostring(self, length=None):

@@ -1,5 +1,5 @@
-from .lwoBase import LWOBase, _obj_layer, _obj_surf, _surf_texture, _surf_position
-
+from .lwoBase import LWOBase, _lwo_base, _obj_layer, _obj_surf, _surf_texture, _surf_position
+from .lwoBase import _obj_node, _obj_nodeRoot, _obj_nodeserver, _obj_nodeName, _obj_nodeTag
 
 class LWO2(LWOBase):
     """Read version 2 file, LW 6+."""
@@ -16,10 +16,10 @@ class LWO2(LWOBase):
         if 0 == len(pointdata):
             self.error("Incomplete lwo file, no more valid points: {self.filename}")
         if pointdata[0] != 255:
-            index = pointdata[0] * 256 + pointdata[1]
+            index = (pointdata[0] << 8) + pointdata[1]
             size = 2
         else:
-            index = pointdata[1] * 65536 + pointdata[2] * 256 + pointdata[3]
+            index = (pointdata[1] << 16) + (pointdata[2] << 8) + pointdata[3]
             size = 4
         self.offset += size
         return index
@@ -311,20 +311,19 @@ class LWO2(LWOBase):
 
         slength = self.offset + length
         while self.offset < slength:
-            b = self.read_lwohead()
-
+            b = self.read_block()
             if b"CNTR" == b.name:
-                p.cntr = self.unpack(">fffh")
+                p.cntr = b.values
             elif b"SIZE" == b.name:
-                p.size = self.unpack(">fffh")
+                p.size = b.values
             elif b"ROTA" == b.name:
-                p.rota = self.unpack(">fffh" )
+                p.rota = b.values
             elif b"FALL" == b.name:
-                p.fall = self.unpack(">hfffh")
+                p.fall = b.values
             elif b"OREF" == b.name:
                 p.oref = self.read_lwostring()
             elif b"CSYS" == b.name:
-                (p.csys,) = self.unpack(">h")
+                p.csys = b.values[0]
             self.offset = b.skip
         return p
 
@@ -333,30 +332,30 @@ class LWO2(LWOBase):
         
         slength = self.offset + length
         while self.offset < slength:
-            b = self.read_lwohead()
+            b = self.read_block()
             
             if b"TMAP" == b.name:
                 texture.position = self.read_position(b.length)
             elif b"CHAN" == b.name:
-                (texture.channel,) = self.unpack("4s")
+                texture.channel  = b.values[0]
                 texture.channel = texture.channel.decode("ascii")
             elif b"OPAC" == b.name:
-                (texture.opactype,) = self.unpack(">H")
-                (texture.opac,) = self.unpack(">f")
+                texture.opactype = b.values[0]
+                texture.opac = b.values[1]
             elif b"ENAB" == b.name:
-                (texture.enab,) = self.unpack(">H")
+                texture.enab = b.values[0]
             elif b"IMAG" == b.name:
-                (texture.clipid,) = self.unpack(">H")
+                texture.clipid = b.values[0]
             elif b"PROJ" == b.name:
-                (texture.projection,) = self.unpack(">H")
+                texture.projection = b.values[0]
             elif b"VMAP" == b.name:
                 texture.uvname = self.read_lwostring()
             elif b"FUNC" == b.name:  # This is the procedural
                 texture.func = self.read_lwostring()
             elif b"NEGA" == b.name:
-                (texture.nega,) = self.unpack(">H")
+                texture.nega = b.values[0]
             elif b"AXIS" == b.name:
-                (texture.axis,) = self.unpack(">H")
+                texture.axis = b.values[0]
             elif b"WRAP" == b.name: # pragma: no cover
                 self.debug(f"Unimplemented SubSubBlock: {b.name}")
             elif b"WRPW" == b.name:  # pragma: no cover
@@ -419,6 +418,114 @@ class LWO2(LWOBase):
                 self.layers[-1].surf_tags[sid] = []
             self.layers[-1].surf_tags[sid].append(pid + abs_pid)
 
+    def read_node_tags(self, length):
+        t = _obj_nodeTag()
+        slength = self.offset + length
+        while self.offset < slength:
+            b = self.read_block()
+            if b"NRNM" == b.name: # RealName
+                t.realname = self.read_lwostring()
+            elif b"NNME" == b.name: # Name
+                t.name = self.read_lwostring()
+            elif b"NCRD" == b.name: # Coordinates
+                t.coords = b.values
+            elif b"NMOD" == b.name: # Mode
+                t.mode = b.values[0]
+            elif b"NDTA" == b.name: # Data
+                pass
+            elif b"NPRW" == b.name: # Preview
+                t.preview = self.read_lwostring()
+            elif b"NCOM" == b.name: # Comment
+                t.comment = self.read_lwostring()
+            elif b"NPLA" == b.name: # Placement
+                t.placement = b.values[0]
+            elif b"NSEL" == b.name: # 
+                pass
+            else:  # pragma: no cover 
+                self.error(f"Unsupported Block: {b.name}")    
+            self.offset = b.skip
+        #print(t)
+        return t
+    
+    def read_node_root(self, length):
+        t = _obj_nodeRoot()
+        slength = self.offset + length
+        while self.offset < slength:
+            b = self.read_block()
+            if b"NLOC" == b.name: # Location
+                #t.loc = self.unpack(">II")
+                t.loc = b.values
+            elif b"NZOM" == b.name: # Zoom 
+                #(t.zoom,) = self.unpack(">f")
+                t.zoom = b.values[0]
+            elif b"NSTA" == b.name: # Disabled
+                #t.disabled = bool(self.unpack("H")[0])
+                t.disabled = bool(b.values[0])
+            else:  # pragma: no cover 
+                self.error(f"Unsupported Block: {b.name}")    
+            self.offset = b.skip
+        return t
+
+    def read_node_setup(self, length):
+        t = _obj_nodeserver()
+        slength = self.offset + length
+        
+        while self.offset < slength:
+            b = self.read_block()
+            if b"NSRV" == b.name: # Server
+                t.name = self.read_lwostring()
+            elif b"NTAG" == b.name: # Node Tags
+                t.tag = self.read_node_tags(b.length)
+            else:  # pragma: no cover 
+                self.error(f"Unsupported Block: {b.name}")    
+            self.offset = b.skip
+        return t
+    
+    def read_node_connections(self, length):
+        t = _obj_nodeName()
+        slength = self.offset + length
+        while self.offset < slength:
+            b = self.read_block()
+            s = self.read_lwostring()
+            
+            if b"INME" == b.name: # NodeName 
+                t.name = s
+            elif b"IINM" == b.name: # InputName
+                t.inputname = s
+            elif b"IINN" == b.name: # InputNodeName
+                t.inputnodename = s
+            elif b"IONM" == b.name: # InputOutputName
+                t.inputoutputname = s
+            else:  # pragma: no cover 
+                self.error(f"Unsupported Block: {b.name}")    
+            self.offset = b.skip
+        return t
+
+    def read_nodes(self, length):
+        n = _obj_node()
+        slength = self.offset + length
+        while self.offset < slength:
+            b = self.read_block()
+            
+            if b"NVER" == b.name:
+                n.version = b.values[0]
+                #n.version = 0
+            elif b"NROT" == b.name:
+                n.root = self.read_node_root(b.length)
+            elif b"NNDS" == b.name:
+                n.server = self.read_node_setup(b.length)
+            elif b"NCON" == b.name: 
+                n.connections = self.read_node_connections(b.length)
+            else: # pragma: no cover
+                self.error(f"Node Unsupported Block: {b.name}")
+            
+            if not self.offset == b.skip:
+                self.debug(f"Skip issue: {b.name} {self.offset} {b.skip}")                                
+            
+            self.offset = b.skip
+
+        return n
+
     def read_surf(self):
         """Read the object's surface data."""
         if len(self.surfs) == 0:
@@ -432,52 +539,52 @@ class LWO2(LWOBase):
         s_name = self.read_lwostring()
         
         while self.offset < len(self.bytes) :
-            b = self.read_lwohead()
+            b = self.read_block()
             
             # Now test which subchunk it is.
             if b"COLR" == b.name:
-                surf.colr = self.unpack(">fff")
+                surf.colr = b.values
                 # Don't bother with any envelopes for now.
 
             elif b"DIFF" == b.name:
-                (surf.diff,) = self.unpack(">f")
+                surf.diff = b.values[0]
 
             elif b"LUMI" == b.name:
-                (surf.lumi,) = self.unpack(">f")
+                surf.lumi = b.values[0]
 
             elif b"SPEC" == b.name:
-                (surf.spec,) = self.unpack(">f")
+                surf.spec = b.values[0]
 
             elif b"REFL" == b.name:
-                (surf.refl,) = self.unpack(">f")
+                surf.refl = b.values[0]
 
             elif b"RBLR" == b.name:
-                (surf.rblr,) = self.unpack(">f")
+                surf.rblr = b.values[0]
 
             elif b"TRAN" == b.name:
-                (surf.tran,) = self.unpack(">f")
+                surf.tran = b.values[0]
 
             elif b"RIND" == b.name:
-                (surf.rind,) = self.unpack(">f")
+                surf.rind = b.values[0]
 
             elif b"TBLR" == b.name:
-                (surf.tblr,) = self.unpack(">f")
+                surf.tblr = b.values[0]
 
             elif b"TRNL" == b.name:
-                (surf.trnl,) = self.unpack(">f")
+                surf.trnl = b.values[0]
 
             elif b"GLOS" == b.name:
-                (surf.glos,) = self.unpack(">f")
+                surf.glos = b.values[0]
 
             elif b"SHRP" == b.name:
-                (surf.shrp,) = self.unpack(">f")
+                surf.shrp = b.values[0]
 
             elif b"SMAN" == b.name:
-                (s_angle,)   = self.unpack(">f")
+                s_angle   = b.values[0]
                 if s_angle > 0.0:
                     surf.smooth = True
             elif b"BUMP" == b.name:
-                (surf.bump,) = self.unpack(">f")
+                surf.bump = b.values[0]
 
             elif b"BLOK" == b.name:
                 length = b.length
@@ -512,8 +619,8 @@ class LWO2(LWOBase):
                     surf.textures[texture.channel].append(texture)
             elif b"VERS" == b.name:  # pragma: no cover
                 self.debug(f"Unimplemented SubChunk: {b.name}")
-            elif b"NODS" == b.name:  # pragma: no cover
-                self.debug(f"Unimplemented SubChunk: {b.name}")
+            elif b"NODS" == b.name:
+                self.read_nodes(b.length)
             elif b"GVAL" == b.name:  # pragma: no cover
                 self.debug(f"Unimplemented SubChunk: {b.name}")
             elif b"NVSK" == b.name:  # pragma: no cover
@@ -689,11 +796,12 @@ class LWO2(LWOBase):
                 self.read_bone_tags("BONE")
             elif tag_type == b"COLR":  # pragma: no cover
                 #print(self.bytes[self.offset-4:self.offset+12])
-                (r, g, b) = self.unpack(">fff")
+                #(r, g, b) = self.unpack(">fff")
                 #print(r, g, b)
-                self.debug(f"Unimplemented tag_type: xx {tag_type}") 
+                self.debug(f"Unimplemented tag_type: {tag_type}") 
                 self.rootchunk.skip()
             elif tag_type == b"PART":   # pragma: no cover
+                #print(self.bytes[self.offset-4:self.offset+12])
                 self.debug(f"Unimplemented tag_type: {tag_type}")
                 self.rootchunk.skip()
             
@@ -730,9 +838,9 @@ class LWO2(LWOBase):
             self.read_surf()
         elif b"CLIP" == self.chunkname:
             self.read_clip()
-        elif b"BBOX" == self.chunkname:  # pragma: no cover
-            self.debug(f"Unimplemented Chunk: {self.chunkname}")  
-            self.rootchunk.skip()
+        elif b"BBOX" == self.chunkname:
+            self.layers[-1].bbox[0] = self.unpack(">fff")
+            self.layers[-1].bbox[1] = self.unpack(">fff")
         elif b"VMPA" == self.chunkname:  # pragma: no cover
             self.debug(f"Unimplemented Chunk: {self.chunkname}")  
             self.rootchunk.skip()

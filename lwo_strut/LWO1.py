@@ -1,4 +1,4 @@
-from .lwoBase import LWOBase, _lwo_base, _obj_layer, _obj_surf
+from .lwoBase import LWOBase, LWOBlock, _lwo_base, _obj_layer, _obj_surf
 
 class _surf_texture_5(_lwo_base):
     __slots__ = ("id", "image", "X", "Y", "Z")
@@ -18,6 +18,17 @@ class LWO1(LWOBase):
         super().__init__(*args, **kwargs)
         self.file_types = [b"LWOB", b"LWLO"]
 
+    def read_lwohead(self):
+        b = LWOBlock()
+        
+        (name,) = self.unpack("4s")
+        (length,) = self.unpack(">H")
+        b.name = name
+        b.length = length
+        b.offset = self.offset
+        b.skip = b.offset + b.length
+        return b
+    
     def read_layr(self):
         """Read the object's layer data."""
         # XXX: Need to check what these two exactly mean for a LWOB/LWLO file.
