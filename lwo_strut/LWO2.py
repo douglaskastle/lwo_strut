@@ -683,10 +683,10 @@ class LWO2(LWOBase):
     def mapping_tags(self):
         if b"FORM" == self.chunkname:
             (tag_type,) = self.unpack("4s")
+            self.offset += 8
             if tag_type == b"SURF":
                 self.read_surf()
             elif tag_type == b"CLIP":
-                self.offset += 4
                 self.read_clip()
             else:
                 self.error(f"Unsupported tag_type: {tag_type}")

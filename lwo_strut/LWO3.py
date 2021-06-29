@@ -72,7 +72,7 @@ class LWO3(LWO2):
 
     def read_clip(self):
         """Read texture clip path"""
-        (num, c_id) = self.unpack(">II")
+        (c_id, ) = self.unpack(">I")
         
         b = self.read_block()
         self.offset += 8
@@ -129,8 +129,6 @@ class LWO3(LWO2):
         if len(self.surfs) == 0:
             self.info("Reading Object Surfaces")
 
-        self.offset += 8
-        
         name = self.read_lwostring()
 
         surf = _obj_surf3()
