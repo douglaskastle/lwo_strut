@@ -75,10 +75,14 @@ class LWO3(LWO2):
         (c_id, ) = self.unpack(">I")
         
         b = self.read_block()
-        self.offset += 8
-        orig_path = self.read_lwostring()
-        self.clips[c_id] = orig_path
-        self.offset = b.skip
+        if b'STIL' == b.name:
+            #print(self.bytes[self.offset:self.offset+8])
+            (x , y) = self.unpack(">II")
+            orig_path = self.read_lwostring()
+            self.clips[c_id] = orig_path
+            self.offset = b.skip
+        else:
+            self.error(f"Unsupported Block: {b.name}")  
     
     def read_shader_data(self, length):
         return
