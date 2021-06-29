@@ -1,4 +1,4 @@
-from .lwoBase import LWOBase, LWOBlock, _lwo_base, _obj_layer, _obj_surf
+from .lwoBase import LWOBase, _lwo_base, _obj_layer, _obj_surf
 
 class _surf_texture_5(_lwo_base):
     __slots__ = ("id", "image", "X", "Y", "Z")
@@ -13,22 +13,66 @@ class _surf_texture_5(_lwo_base):
 
 
 class LWO1(LWOBase):
+
+    CMAP = {
+        b'COLR' : ">BBBB",
+        b'DIFF' : ">h",
+        b'LUMI' : ">h",
+        b'SPEC' : ">h",
+        b'REFL' : ">h",
+        b'TRAN' : ">h",
+        b'RIND' : ">f",
+        b'GLOS' : ">h",
+        b'SMAN' : ">f",
+        b'CTEX' : None,
+        b'DTEX' : None,
+        b'STEX' : None,
+        b'RTEX' : None,
+        b'TTEX' : None,
+        b'BTEX' : None,
+        b'LTEX' : None,
+        b'TIMG' : None,
+        b'TFLG' : ">h",
+        b'FLAG' : None,
+        b'VLUM' : None,
+        b'VDIF' : None,
+        b'VSPC' : None,
+        b'VRFL' : None,
+        b'VTRN' : None,
+        b'RFLT' : None,
+        b'ALPH' : None,
+        b'TOPC' : None,
+        b'TWRP' : None,
+        b'TSIZ' : None,
+        b'TCTR' : None,
+        b'TAAS' : None,
+        b'TVAL' : None,
+        b'TFP0' : None,
+        b'TAMP' : None,
+        b'RIMG' : None,
+        b'TCLR' : None,
+        b'TFAL' : None,
+        b'TVEL' : None,
+        b'TREF' : None,
+        b'TALP' : None,
+        b'EDGE' : None,
+        b'GLOW' : None,
+        b'TIP0' : None,
+        b'TFP1' : None,
+        b'TFP2' : None,
+        b'TFP3' : None,
+        b'SPBF' : None,
+        b'SHDR' : None,
+        b'SDAT' : None,
+        b'IMSQ' : None,
+    }
+
+
     """Read version 1 file, LW < 6."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.file_types = [b"LWOB", b"LWLO"]
 
-    def read_lwohead(self):
-        b = LWOBlock()
-        
-        (name,) = self.unpack("4s")
-        (length,) = self.unpack(">H")
-        b.name = name
-        b.length = length
-        b.offset = self.offset
-        b.skip = b.offset + b.length
-        return b
-    
     def read_layr(self):
         """Read the object's layer data."""
         # XXX: Need to check what these two exactly mean for a LWOB/LWLO file.
@@ -83,42 +127,42 @@ class LWO1(LWOBase):
             surf.name = name
 
         while self.offset < len(self.bytes):
-            b = self.read_lwohead()
+            b = self.read_block()
 
             # Now test which subchunk it is.
             if b"COLR" == b.name:
-                color = self.unpack(">BBBB")
+                color = b.values
                 surf.colr = [color[0] / 255.0, color[1] / 255.0, color[2] / 255.0]
 
             elif b"DIFF" == b.name:
-                (surf.diff,) = self.unpack(">h")
+                surf.diff = b.values[0]
                 surf.diff /= 256.0  # Yes, 256 not 255.
 
             elif b"LUMI" == b.name:
-                (surf.lumi,) = self.unpack(">h")
+                surf.lumi = b.values[0]
                 surf.lumi /= 256.0
 
             elif b"SPEC" == b.name:
-                (surf.spec,) = self.unpack(">h")
+                surf.spec = b.values[0]
                 surf.spec /= 256.0
 
             elif b"REFL" == b.name:
-                (surf.refl,) = self.unpack(">h")
+                surf.refl = b.values[0]
                 surf.refl /= 256.0
 
             elif b"TRAN" == b.name:
-                (surf.tran,) = self.unpack(">h")
+                surf.tran = b.values[0]
                 surf.tran /= 256.0
 
             elif b"RIND" == b.name:
-                (surf.rind,) = self.unpack(">f")
+                surf.rind = b.values[0]
 
             elif b"GLOS" == b.name:
-                (surf.glos,) = self.unpack(">h")
+                surf.glos = b.values[0]
                 surf.glos /= 256.0
 
             elif b"SMAN" == b.name:
-                (s_angle,) = self.unpack(">f")
+                s_angle = b.values[0]
                 if s_angle > 0.0:
                     surf.smooth = True
 
@@ -139,7 +183,7 @@ class LWO1(LWOBase):
 
             elif b"TFLG" == b.name:
                 if texture:
-                    (mapping,) = self.unpack(">h")
+                    mapping = b.values[0]
                     if mapping & 1:
                         texture.X = True
                     elif mapping & 2:
@@ -235,7 +279,7 @@ class LWO1(LWOBase):
             self.last_pols_count = self.read_pols()
             self.layers[-1].has_subds = True
         elif b"PTAG" == self.chunkname:
-            #(tag_type,) = self.unpack("4s")
+            #(tag_type = ("4s")
             self.rootchunk.skip()
         elif b"SURF" == self.chunkname:
             self.read_surf()

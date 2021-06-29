@@ -1,5 +1,5 @@
 from .LWO2 import LWO2
-from .lwoBase import LWOBlock, CMAP, _lwo_base, _obj_node, _obj_nodeRoot, _obj_nodeserver, _obj_nodeName, _obj_nodeTag
+from .lwoBase import LWOBlock, _lwo_base, _obj_node, _obj_nodeRoot, _obj_nodeserver, _obj_nodeName, _obj_nodeTag
 
 class _obj_surf3(_lwo_base):
     __slots__ = (
@@ -65,8 +65,8 @@ class LWO3(LWO2):
             b.name = subname
         else:
             b.name = name
-            if not CMAP[name] is None:
-                b.values = self.unpack(CMAP[name])
+            if not self.CMAP[name] is None:
+                b.values = self.unpack(self.CMAP[name])
             
         return b
 
@@ -85,7 +85,7 @@ class LWO3(LWO2):
             self.error(f"Unsupported Block: {b.name}")  
     
     def read_shader_data(self, length):
-        return
+        #return
         b = self.read_block()
         print(b.name)
         b = self.read_block()
@@ -122,8 +122,11 @@ class LWO3(LWO2):
             
             if b"SSHN" == b.name:
                 s = self.read_lwostring()
+                #print(s)
+                #exit()
             elif b"SSHD" == b.name:
-                self.read_shader_data(b.length)
+                #self.read_shader_data(b.length)
+                pass
             else:  # pragma: no cover 
                 self.error(f"Unsupported Block: {b.name}")    
             self.offset = b.skip
