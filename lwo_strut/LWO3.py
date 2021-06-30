@@ -68,6 +68,7 @@ class LWO3(LWO2):
             if not self.CMAP[name] is None:
                 b.values = self.unpack(self.CMAP[name])
             
+        #print(name, b.name, length)
         return b
 
     def read_clip(self):
@@ -78,41 +79,126 @@ class LWO3(LWO2):
         if b'STIL' == b.name:
             #print(self.bytes[self.offset:self.offset+8])
             (x , y) = self.unpack(">II")
+            #s = self.read_lwostring()
+            #print(s)
             orig_path = self.read_lwostring()
             self.clips[c_id] = orig_path
             self.offset = b.skip
         else:
             self.error(f"Unsupported Block: {b.name}")  
     
-    def read_shader_data(self, length):
-        #return
-        b = self.read_block()
-        print(b.name)
-        b = self.read_block()
-        print(b.name)
-        b = self.read_block()
-        print(b.name)
-        b = self.read_block()
-        print(b.name)
-        b = self.read_block()
-        print(b.name)
-        b = self.read_block()
-        print(b.name)
-#         b = self.read_block()
-#         print(b.name)
-        return
-        
+    def read_shader_entr(self, length):
         slength = self.offset + length
         while self.offset < slength:
             b = self.read_block()
             
+            if b"NAME" == b.name:
+                x = self.read_lwostring()
+                #print(x)
+            elif b"FLAG" == b.name:
+                #self.debug(f"Unsupported Blockx: {b.name}")    
+                #print(self.bytes[self.offset:self.offset+16])
+                y = b.values[0]
+                #print(y)
+            elif b"VALU" == b.name:
+                #self.debug(f"Unsupported Blockx: {b.name}")    
+                #print(self.bytes[self.offset:self.offset+16])
+                #print(self.bytes[self.offset+8:self.offset+16])
+                #print(self.offset, slength, b.length)
+                g = self.unpack(">II")
+                x = self.read_lwostring()
+                #z = self.unpack(">I")
+                #print(x)
+                #print(y)
+            elif b"TAG " == b.name:
+                #self.debug(f"Unsupported Blockx: {b.name}")    
+                #print(self.bytes[self.offset:self.offset+16])
+                #print(self.offset, slength, b.length) 
+                x = self.read_lwostring()
+                y = self.read_lwostring()
+                #print(x)
+                #print(y)
+            else:  # pragma: no cover 
+                print(self.bytes[self.offset-8:self.offset+16])
+                self.error(f"Unsupported Block: {b.name}")    
+            if self.offset < b.skip-8:
+                self.debug(f"{b.name}, {self.offset}, {b.skip} {g}")
+                #self.error(f"Offset drifted")    
+            self.offset = b.skip
+    
+    def read_shader_adat(self, length):
+        slength = self.offset + length
+        while self.offset < slength:
+            b = self.read_block()
+            
+            if b"ENTR" == b.name:
+                self.read_shader_entr(b.length)
+            else:  # pragma: no cover 
+                #print(self.bytes[self.offset-8:self.offset+16])
+                self.error(f"Unsupported Block: {b.name}")    
+            if self.offset < b.skip:
+                self.debug(f"{b.name}, {self.offset}, {b.skip}")
+                self.error(f"Offset drifted")    
+            self.offset = b.skip
+    
+    def read_shader_meta(self, length):
+        slength = self.offset + length
+        while self.offset < slength:
+            b = self.read_block()
+            
+            if b"VERS" == b.name:
+                self.debug(f"Unimplemented Block: {b.name}")
+                #x = b.values[0]
+                x = self.unpack("Q")
+            elif b"ENUM" == b.name:
+                self.debug(f"Unimplemented Block: {b.name}")
+                #print(self.bytes[self.offset:self.offset+16])
+                (x,) = self.unpack("4s")
+                (y,) = self.unpack(">I") 
+                #print(x, y)
+            elif b"ADAT" == b.name:
+                self.debug(f"Unimplemented Block: {b.name}")
+                self.read_shader_adat(b.length)
+            else:  # pragma: no cover 
+                self.error(f"Unsupported Blockx: {b.name}")    
+            
+            #self.debug(f"{b.name}, {self.offset}, {b.skip}")
+            if self.offset < b.skip:
+                self.debug(f"{b.name}, {self.offset}, {b.skip}")
+                self.error(f"Offset drifted")    
+            self.offset = b.skip
+    
+    def read_shader_attr(self, length):
+        slength = self.offset + length
+        while self.offset < slength:
+            b = self.read_block()
+            
+            if b"META" == b.name:
+                #self.debug(f"Unimplemented Blockx: {b.name}") 
+                #print(self.bytes[self.offset-8:self.offset+16]) 
+                #print(self.offset, slength, b.length) 
+                self.read_shader_meta(b.length)
+            else:  # pragma: no cover 
+                self.error(f"Unsupported Blockx: {b.name}")    
+            if self.offset < b.skip:
+                self.debug(f"{b.name}, {self.offset}, {b.skip}")
+                self.error(f"Offset drifted")    
+            self.offset = b.skip
+    
+    def read_shader_data(self, length):
+        slength = self.offset + length
+        while self.offset < slength:
+            b = self.read_block()
             if b"ATTR" == b.name:
-                pass
-                self.debug(f"Unimplemented: {b.name}")    
-#             elif b"SSHD" == b.name:
-#                 self.read_shader_data(b.length)
+                #print(self.bytes[self.offset-8:self.offset+16])
+                #print(self.offset, slength, b.length) 
+                #self.debug(f"Unimplemented Block: {b.name}") 
+                self.read_shader_attr(b.length)
             else:  # pragma: no cover 
                 self.error(f"Unsupported Block: {b.name}")    
+            if self.offset < b.skip:
+                self.debug(f"{b.name}, {self.offset}, {b.skip}")
+                self.error(f"Offset drifted")    
             self.offset = b.skip
     
     def read_shader(self, length):
@@ -123,12 +209,13 @@ class LWO3(LWO2):
             if b"SSHN" == b.name:
                 s = self.read_lwostring()
                 #print(s)
-                #exit()
             elif b"SSHD" == b.name:
-                #self.read_shader_data(b.length)
-                pass
+                self.read_shader_data(b.length)
             else:  # pragma: no cover 
                 self.error(f"Unsupported Block: {b.name}")    
+            if self.offset < b.skip:
+                self.debug(f"{b.name}, {self.offset}, {b.skip}")
+                self.error(f"Offset drifted")    
             self.offset = b.skip
    
     def read_surf(self):
