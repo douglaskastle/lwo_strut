@@ -7,9 +7,22 @@ from scripts.lwo_helper import LwoFile
 
 def main():
     infiles = [ 
-        "tests/basic/src/LWO2/box/box0.lwo",
         "tests/basic/src/LWO2/box/box6-hidden.lwo",
-        "tests/basic/src/LWO/box/box3-uv-layers.lwo",
+        "tests/basic/src/LWO2/box/colors1.lwo",
+        "tests/basic/src/LWO2/box/colors0.lwo",
+        "tests/basic/src/LWO2/box/box9.lwo",
+        "tests/basic/src/LWO2/box/box8.lwo",
+        "tests/basic/src/LWO2/box/box7.lwo",
+        "tests/basic/src/LWO2/box/box6.lwo",
+        "tests/basic/src/LWO2/box/box5-ngon.lwo",
+        "tests/basic/src/LWO2/box/box4-uv-layers.lwo",
+        "tests/basic/src/LWO2/box/box3-uv-layers.lwo",
+        "tests/basic/src/LWO2/box/box2-uv.lwo",
+        "tests/basic/src/LWO2/box/box11.lwo",
+        "tests/basic/src/LWO2/box/box10.lwo",
+        "tests/basic/src/LWO2/box/box1.lwo",
+        "tests/basic/src/LWO2/box/box1-uv.lwo",
+        "tests/basic/src/LWO2/box/box0.lwo",
         "tests/lwo_interceptor/src/LWO2/Federation - Interceptor/objects/interceptor_hull.lwo",
         "tests/lwo_interceptor/src/LWO3/Federation - Interceptor/objects/interceptor_hull.lwo",
     ]
